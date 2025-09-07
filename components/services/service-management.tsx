@@ -13,6 +13,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { Service } from "@/lib/auth"
 import type { License, ServiceAssignment } from "@/lib/services"
+import type { SubTask } from "@/lib/auth"
+import { SubtaskEditor } from "@/components/tasks/subtask-editor"
 
 type ViewMode = "catalog" | "licenses" | "assign" | "edit-service" | "edit-license" | "add-service"
 
@@ -20,12 +22,20 @@ export function ServiceManagement() {
   const [viewMode, setViewMode] = useState<ViewMode>("catalog")
   const [selectedService, setSelectedService] = useState<Service | null>(null)
   const [selectedLicense, setSelectedLicense] = useState<License | null>(null)
-  const [newService, setNewService] = useState({
+  const [newService, setNewService] = useState<{
+    name: string
+    description: string
+    category: string
+    price: number
+    requiresLicense: boolean
+    subtasks: SubTask[]
+  }>({
     name: "",
     description: "",
     category: "",
     price: 0,
     requiresLicense: false,
+    subtasks: [],
   })
 
   const handleEditService = (service: Service) => {
@@ -59,6 +69,7 @@ export function ServiceManagement() {
       category: "",
       price: 0,
       requiresLicense: false,
+      subtasks: [],
     })
     setViewMode("add-service")
   }
@@ -73,6 +84,7 @@ export function ServiceManagement() {
       category: "",
       price: 0,
       requiresLicense: false,
+      subtasks: [],
     })
   }
 
@@ -85,6 +97,7 @@ export function ServiceManagement() {
       category: "",
       price: 0,
       requiresLicense: false,
+      subtasks: [],
     })
     setViewMode("catalog")
   }
@@ -176,6 +189,13 @@ export function ServiceManagement() {
               </label>
             </div>
 
+            <div className="space-y-2">
+              <SubtaskEditor
+                subtasks={newService.subtasks}
+                onChange={subtasks => setNewService(prev => ({ ...prev, subtasks }))}
+              />
+            </div>
+
             <div className="flex gap-2 pt-4">
               <Button onClick={handleSaveNewService} disabled={!newService.name || !newService.category}>
                 Create Service
@@ -183,6 +203,79 @@ export function ServiceManagement() {
               <Button variant="outline" onClick={handleCancel} className="bg-transparent">
                 Cancel
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (viewMode === "edit-service" && selectedService) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="outline" onClick={handleCancel} className="bg-transparent">
+            Back to Services
+          </Button>
+          <h2 className="text-2xl font-bold text-card-foreground">Edit Service</h2>
+        </div>
+        <Card className="max-w-2xl">
+          <CardHeader>
+            <CardTitle>Edit Service Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Service Name</label>
+              <Input
+                placeholder="Enter service name"
+                value={selectedService.name}
+                onChange={e => setSelectedService(prev => prev ? { ...prev, name: e.target.value } : prev)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Description</label>
+              <Textarea
+                placeholder="Enter service description"
+                value={selectedService.description}
+                onChange={e => setSelectedService(prev => prev ? { ...prev, description: e.target.value } : prev)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Category</label>
+              <Input
+                placeholder="Category"
+                value={selectedService.category}
+                onChange={e => setSelectedService(prev => prev ? { ...prev, category: e.target.value } : prev)}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Price ($)</label>
+              <Input
+                type="number"
+                placeholder="0.00"
+                value={selectedService.price}
+                onChange={e => setSelectedService(prev => prev ? { ...prev, price: Number.parseFloat(e.target.value) || 0 } : prev)}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="requiresLicenseEdit"
+                checked={selectedService.requiresLicense}
+                onCheckedChange={checked => setSelectedService(prev => prev ? { ...prev, requiresLicense: !!checked } : prev)}
+              />
+              <label htmlFor="requiresLicenseEdit" className="text-sm font-medium">
+                Requires License
+              </label>
+            </div>
+            <div className="space-y-2">
+              <SubtaskEditor
+                subtasks={selectedService.subtasks || []}
+                onChange={subtasks => setSelectedService(prev => prev ? { ...prev, subtasks } : prev)}
+              />
+            </div>
+            <div className="flex gap-2 pt-4">
+              <Button onClick={() => setViewMode("catalog")}>Save Changes</Button>
+              <Button variant="outline" onClick={handleCancel} className="bg-transparent">Cancel</Button>
             </div>
           </CardContent>
         </Card>

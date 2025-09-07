@@ -2,14 +2,17 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, Edit, Calendar, User, Building, Plus, Trash2, CheckCircle2, Clock, AlertCircle } from "lucide-react"
+import { ArrowLeft, Edit, Calendar, User, Building, Plus, Trash2, CheckCircle2, Clock, AlertCircle, Upload } from "lucide-react"
 import type { Task, SubTask } from "@/lib/auth"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { FileUpload } from "@/components/files/file-upload"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 
 interface TaskDetailsProps {
   task: Task
@@ -190,25 +193,92 @@ export function TaskDetails({ task, onEdit, onBack, allowSubtaskCreation = false
                 </div>
               )}
 
-              <div className="space-y-3">
-                {subtasks.map((subtask) => (
-                  <div key={subtask.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                    <Checkbox checked={subtask.completed} onCheckedChange={() => handleSubtaskToggle(subtask.id)} />
-                    <span className={`flex-1 ${subtask.completed ? "line-through text-muted-foreground" : ""}`}>
-                      {subtask.title}
-                    </span>
-                    <span className="text-xs text-muted-foreground">Employee {subtask.assignedTo}</span>
-                    {allowSubtaskCreation && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteSubtask(subtask.id)}
-                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold">Subtasks ({subtasks.filter(st => st.completed).length}/{subtasks.length})</h2>
+                  {allowSubtaskCreation && (
+                    <Button className="rounded-2xl" onClick={handleAddSubtask}>+ Add Subtask</Button>
+                  )}
+                </div>
+                {subtasks.map((subtask, idx) => (
+                  <Card key={subtask.id} className="shadow-sm rounded-2xl">
+                    <CardContent className="p-6 space-y-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <Checkbox checked={subtask.completed} onCheckedChange={() => handleSubtaskToggle(subtask.id)} className="h-5 w-5" />
+                          <span className="text-lg font-medium">{subtask.title}</span>
+                          {subtask.completed && <span className="ml-2 text-sm text-green-600 font-semibold">Done</span>}
+                        </div>
+                        {allowSubtaskCreation && (
+                          <Button variant="outline" size="icon" className="rounded-full" onClick={() => handleDeleteSubtask(subtask.id)}>🗑</Button>
+                        )}
+                      </div>
+
+                      {subtask.requiresProof && (
+                        <div className="border-2 border-dashed rounded-2xl p-6 text-center bg-gray-50 hover:bg-gray-100 transition cursor-pointer">
+                          <Upload className="mx-auto h-8 w-8 text-gray-400" />
+                          <p className="mt-2 text-gray-600">Drag & drop files here or click to upload</p>
+                          <FileUpload
+                            taskId={task.id}
+                            onUploadComplete={(files) => {
+                              setSubtasks((prev) => prev.map((st, i) => i === idx ? { ...st, proofFiles: files } : st));
+                            }}
+                            maxFiles={3}
+                          />
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-500">Assigned to</p>
+                          <p className="font-medium">Employee {subtask.assignedTo}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Due Date</p>
+                          <p className="font-medium">{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Created</p>
+                          <p className="font-medium">{task.createdAt ? new Date(task.createdAt).toLocaleDateString() : "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Cost</p>
+                          <p className="font-medium">{subtask.additionalCost?.amount ? `$${subtask.additionalCost.amount}` : "-"} {subtask.additionalCost?.comment ? `(${subtask.additionalCost.comment})` : ""}</p>
+                        </div>
+                      </div>
+
+                      <div className="grid gap-4">
+                        <Input
+                          type="number"
+                          value={subtask.additionalCost?.amount ?? ""}
+                          placeholder="Enter Additional Cost ($)"
+                          onChange={e => {
+                            const value = parseFloat(e.target.value);
+                            setSubtasks((prev) => prev.map((st, i) => i === idx ? { ...st, additionalCost: { ...st.additionalCost, amount: value, comment: st.additionalCost?.comment ?? "" } } : st));
+                          }}
+                        />
+                        <Textarea
+                          value={subtask.additionalCost?.comment ?? ""}
+                          placeholder="Reason for Additional Cost (e.g. Stock images, licenses, etc.)"
+                          onChange={e => {
+                            const value = e.target.value;
+                            setSubtasks((prev) => prev.map((st, i) => i === idx ? { ...st, additionalCost: { ...st.additionalCost, comment: value, amount: st.additionalCost?.amount ?? 0 } } : st));
+                          }}
+                        />
+                      </div>
+
+                      {subtask.proofFiles && subtask.proofFiles.length > 0 && (
+                        <div className="bg-gray-100 rounded-xl p-3">
+                          <p className="text-sm text-gray-600">Uploaded Files:</p>
+                          <ul className="list-disc list-inside text-sm text-gray-800">
+                            {subtask.proofFiles.map((file, i) => (
+                              <li key={i}>{file.name}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
 

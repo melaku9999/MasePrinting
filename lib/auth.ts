@@ -24,6 +24,9 @@ export interface Service {
   price: number
   requiresLicense: boolean
   category: string
+  subscribedCustomers?: Customer[]
+  pendingCustomers?: Customer[]
+  subtasks?: SubTask[]
 }
 
 export interface Task {
@@ -42,10 +45,13 @@ export interface Task {
 }
 
 export interface SubTask {
-  id: string
-  title: string
-  completed: boolean
-  assignedTo: string
+  id: string;
+  title: string;
+  completed: boolean;
+  assignedTo: string;
+  requiresProof?: boolean;
+  proofFiles?: File[];
+  additionalCost?: { amount: number; comment: string };
 }
 
 export interface BoxFile {
@@ -90,6 +96,24 @@ export const mockCustomers: Customer[] = [
   },
 ]
 
+const mockProofFile = (name: string): File => {
+  return {
+    name,
+    lastModified: Date.now(),
+    webkitRelativePath: "",
+    size: 123456,
+    type: "application/pdf",
+    // @ts-ignore
+    arrayBuffer: async () => new ArrayBuffer(0),
+    // @ts-ignore
+    slice: () => null,
+    // @ts-ignore
+    stream: () => null,
+    // @ts-ignore
+    text: async () => "",
+  } as unknown as File;
+}
+
 export const mockServices: Service[] = [
   {
     id: "1",
@@ -98,6 +122,35 @@ export const mockServices: Service[] = [
     price: 2500.0,
     requiresLicense: false,
     category: "Development",
+    subscribedCustomers: [
+      {
+        id: "1",
+        name: "Acme Corporation",
+        email: "contact@acme.com",
+        phone: "+1-555-0123",
+        address: "123 Business St, City, State 12345",
+        status: "active",
+        createdAt: "2024-01-15",
+        prepaymentBalance: 2500.0,
+      },
+    ],
+    pendingCustomers: [
+      {
+        id: "2",
+        name: "Tech Solutions Inc",
+        email: "info@techsolutions.com",
+        phone: "+1-555-0456",
+        address: "456 Innovation Ave, Tech City, TC 67890",
+        status: "active",
+        createdAt: "2024-02-20",
+        prepaymentBalance: 1200.0,
+      },
+    ],
+    subtasks: [
+      { id: "1", title: "Design mockups", completed: true, assignedTo: "2", requiresProof: true, proofFiles: [mockProofFile("mockup1.png")], additionalCost: { amount: 120, comment: "Stock images" } },
+      { id: "2", title: "Frontend development", completed: false, assignedTo: "2", requiresProof: false },
+      { id: "3", title: "Backend integration", completed: false, assignedTo: "2", requiresProof: true, proofFiles: [mockProofFile("api-spec.pdf")] }
+    ],
   },
   {
     id: "2",
@@ -106,6 +159,24 @@ export const mockServices: Service[] = [
     price: 500.0,
     requiresLicense: true,
     category: "Licensing",
+    subscribedCustomers: [
+      {
+        id: "2",
+        name: "Tech Solutions Inc",
+        email: "info@techsolutions.com",
+        phone: "+1-555-0456",
+        address: "456 Innovation Ave, Tech City, TC 67890",
+        status: "active",
+        createdAt: "2024-02-20",
+        prepaymentBalance: 1200.0,
+      },
+    ],
+    pendingCustomers: [],
+    subtasks: [
+      { id: "4", title: "Contact vendor", completed: false, assignedTo: "1", requiresProof: true, proofFiles: [mockProofFile("vendor-email.pdf")] },
+      { id: "5", title: "Renew license", completed: false, assignedTo: "1", requiresProof: false },
+      { id: "6", title: "Collect documents", completed: true, assignedTo: "1", requiresProof: true, proofFiles: [mockProofFile("passport.pdf")], additionalCost: { amount: 30, comment: "Document printing" } }
+    ],
   },
 ]
 
@@ -116,16 +187,67 @@ export const mockTasks: Task[] = [
     description: "Complete redesign of company website with modern UI/UX",
     customerId: "1",
     serviceId: "1",
-    assignedTo: "2",
+    assignedTo: "2", // Employee
     status: "in-progress",
     priority: "high",
     dueDate: "2024-03-15",
     createdAt: "2024-02-01",
     progress: 65,
     subtasks: [
-      { id: "1", title: "Design mockups", completed: true, assignedTo: "2" },
-      { id: "2", title: "Frontend development", completed: false, assignedTo: "2" },
-      { id: "3", title: "Backend integration", completed: false, assignedTo: "2" },
+      { id: "1", title: "Design mockups", completed: true, assignedTo: "2", requiresProof: true, proofFiles: [mockProofFile("mockup1.png"), mockProofFile("mockup2.png")], additionalCost: { amount: 120, comment: "Stock images" } },
+      { id: "2", title: "Frontend development", completed: false, assignedTo: "2", requiresProof: false },
+      { id: "3", title: "Backend integration", completed: false, assignedTo: "2", requiresProof: true, proofFiles: [mockProofFile("api-spec.pdf")] },
+    ],
+  },
+  {
+    id: "2",
+    title: "License Renewal",
+    description: "Renew software licenses for Tech Solutions Inc.",
+    customerId: "2",
+    serviceId: "2",
+    assignedTo: "1", // Admin
+    status: "pending",
+    priority: "medium",
+    dueDate: "2024-09-20",
+    createdAt: "2024-09-01",
+    progress: 0,
+    subtasks: [
+      { id: "4", title: "Contact vendor", completed: false, assignedTo: "1", requiresProof: true, proofFiles: [mockProofFile("vendor-email.pdf")] },
+      { id: "5", title: "Review contracts", completed: false, assignedTo: "1", requiresProof: false, additionalCost: { amount: 75, comment: "Legal review" } },
+    ],
+  },
+  {
+    id: "3",
+    title: "Customer Onboarding",
+    description: "Onboard new customer for website development.",
+    customerId: "1",
+    serviceId: "1",
+    assignedTo: "1", // Admin
+    status: "in-progress",
+    priority: "high",
+    dueDate: "2024-09-10",
+    createdAt: "2024-08-25",
+    progress: 40,
+    subtasks: [
+      { id: "6", title: "Collect documents", completed: true, assignedTo: "1", requiresProof: true, proofFiles: [mockProofFile("passport.pdf")], additionalCost: { amount: 30, comment: "Document printing" } },
+      { id: "7", title: "Setup account", completed: false, assignedTo: "1", requiresProof: false },
+    ],
+  },
+  {
+    id: "4",
+    title: "Performance Review",
+    description: "Review project performance for Acme Corporation.",
+    customerId: "1",
+    serviceId: "1",
+    assignedTo: "1", // Admin
+    status: "completed",
+    priority: "low",
+    dueDate: "2024-08-01",
+    createdAt: "2024-07-15",
+    progress: 100,
+    subtasks: [
+      { id: "8", title: "Prepare report", completed: true, assignedTo: "1", requiresProof: true, proofFiles: [mockProofFile("report.pdf")] },
+      { id: "9", title: "Send feedback", completed: true, assignedTo: "1", requiresProof: false, additionalCost: { amount: 20, comment: "Client call" } },
     ],
   },
 ]

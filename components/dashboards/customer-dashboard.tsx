@@ -52,6 +52,7 @@ export function CustomerDashboard({ user, onLogout }: CustomerDashboardProps) {
     { id: "files", label: "Box Files", icon: Folder },
     { id: "chat", label: "Chat Support", icon: MessageSquare },
     { id: "notifications", label: "Notifications", icon: Bell },
+    { id: "profile", label: "Profile Settings", icon: Settings },
   ]
 
   const customer = mockCustomers[0] // Mock: assume first customer
@@ -63,7 +64,7 @@ export function CustomerDashboard({ user, onLogout }: CustomerDashboardProps) {
   const completedTasks = customerTasks.filter((task) => task.status === "completed")
   const pendingTasks = customerTasks.filter((task) => task.status === "pending")
 
-  const urgentNotifications = mockNotifications.filter((n) => n.urgent).length
+  const urgentNotifications = mockNotifications.filter((n) => n.type === "urgent").length
 
   const handleSendMessage = () => {
     if (chatMessage.trim()) {
@@ -89,6 +90,10 @@ export function CustomerDashboard({ user, onLogout }: CustomerDashboardProps) {
         ])
       }, 2000)
     }
+  }
+
+  const handleProfileNavigation = () => {
+    window.location.href = '/customer/profile'
   }
 
   const filteredFiles = customerFiles.filter(
@@ -133,7 +138,13 @@ export function CustomerDashboard({ user, onLogout }: CustomerDashboardProps) {
                   key={item.id}
                   variant={activeTab === item.id ? "secondary" : "ghost"}
                   className={cn("w-full justify-start gap-3 h-10 relative", sidebarCollapsed && "justify-center px-2")}
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => {
+                    if (item.id === 'profile') {
+                      handleProfileNavigation()
+                    } else {
+                      setActiveTab(item.id)
+                    }
+                  }}
                 >
                   <Icon className="h-4 w-4 flex-shrink-0" />
                   {!sidebarCollapsed && <span>{item.label}</span>}
@@ -163,7 +174,12 @@ export function CustomerDashboard({ user, onLogout }: CustomerDashboardProps) {
           </div>
           {!sidebarCollapsed && (
             <div className="mt-3 space-y-1">
-              <Button variant="ghost" size="sm" className="w-full justify-start gap-2 h-8">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="w-full justify-start gap-2 h-8"
+                onClick={handleProfileNavigation}
+              >
                 <Settings className="h-3 w-3" />
                 Settings
               </Button>
@@ -213,7 +229,7 @@ export function CustomerDashboard({ user, onLogout }: CustomerDashboardProps) {
                 {mockNotifications.map((notification) => (
                   <div
                     key={notification.id}
-                    className={`p-4 border-b hover:bg-muted ${notification.urgent ? "bg-red-50 border-l-4 border-l-red-500" : ""}`}
+                    className={`p-4 border-b hover:bg-muted ${notification.type === "urgent" ? "bg-red-50 border-l-4 border-l-red-500" : ""}`}
                   >
                     <div className="flex justify-between items-start">
                       <div>
@@ -221,7 +237,7 @@ export function CustomerDashboard({ user, onLogout }: CustomerDashboardProps) {
                         <p className="text-sm text-muted-foreground">{notification.message}</p>
                       </div>
                       <span className="text-xs text-muted-foreground">
-                        {notification.date ? new Date(notification.date).toLocaleDateString() : "No date"}
+                        {notification.timestamp}
                       </span>
                     </div>
                   </div>
@@ -532,7 +548,7 @@ export function CustomerDashboard({ user, onLogout }: CustomerDashboardProps) {
                               {file.type} • {(file.size / 1024 / 1024).toFixed(2)} MB
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              Uploaded: {new Date(file.uploadDate).toLocaleDateString()}
+                              Uploaded: {new Date(file.uploadedAt).toLocaleDateString()}
                             </p>
                           </div>
                         </div>
@@ -627,7 +643,7 @@ export function CustomerDashboard({ user, onLogout }: CustomerDashboardProps) {
                   {mockNotifications.map((notification) => (
                     <div
                       key={notification.id}
-                      className={`p-4 rounded-lg border ${notification.urgent ? "bg-red-50 border-red-200" : "bg-muted"}`}
+                      className={`p-4 rounded-lg border ${notification.type === "urgent" ? "bg-red-50 border-red-200" : "bg-muted"}`}
                     >
                       <div className="flex justify-between items-start">
                         <div>
@@ -645,7 +661,7 @@ export function CustomerDashboard({ user, onLogout }: CustomerDashboardProps) {
                             >
                               {notification.type}
                             </Badge>
-                            {notification.urgent && (
+                            {notification.type === "urgent" && (
                               <Badge variant="destructive" className="text-xs">
                                 Urgent
                               </Badge>
@@ -653,7 +669,7 @@ export function CustomerDashboard({ user, onLogout }: CustomerDashboardProps) {
                           </div>
                         </div>
                         <span className="text-xs text-muted-foreground">
-                          {notification.date ? new Date(notification.date).toLocaleDateString() : "No date"}
+                          {notification.timestamp}
                         </span>
                       </div>
                     </div>

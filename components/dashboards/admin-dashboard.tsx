@@ -13,6 +13,8 @@ import { SalesReport } from "@/components/reports/sales-report"
 import { PerformanceReport } from "@/components/reports/performance-report"
 import { BoxFileManagement } from "@/components/files/box-file-management"
 import { EmployeeManagement } from "@/components/employees/employee-management"
+import { AdminChat } from "@/components/chat/admin-chat"
+import { AdminChatTelegram } from "@/components/chat/admin-chat-telegram"
 import {
   Users,
   Building,
@@ -32,6 +34,7 @@ import {
   ChevronRight,
 } from "lucide-react"
 import type { User } from "@/lib/auth"
+import { AdminMyTasksOnly } from "@/components/dashboards/admin-my-tasks-only"
 
 interface AdminDashboardProps {
   user: User
@@ -47,11 +50,13 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
     { id: "customers", label: "Customers", icon: Users },
     { id: "services", label: "Services", icon: Building },
     { id: "tasks", label: "Tasks", icon: CheckCircle2 },
+    { id: "mytasks", label: "My Tasks", icon: CheckCircle2 }, // Added My Tasks
     { id: "boxfiles", label: "Box Files", icon: FolderOpen },
     { id: "employees", label: "Employees", icon: UserCheck },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
     { id: "sales", label: "Sales", icon: DollarSign },
     { id: "performance", label: "Performance", icon: TrendingUp },
+    { id: "chat", label: "Customer Chat", icon: Bell },
   ]
 
   // Mock analytics data
@@ -157,7 +162,7 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 p-6 overflow-auto">
+        <div className="flex-1 p-6">
           {activeTab === "overview" && (
             <div className="space-y-6">
               {/* Key Metrics */}
@@ -297,12 +302,16 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
 
           {activeTab === "customers" && <CustomerManagement />}
           {activeTab === "services" && <ServiceManagement />}
-          {activeTab === "tasks" && <TaskManagement showCustomerInfo={true} allowSubtaskCreation={true} />}
+          {activeTab === "tasks" && <TaskManagement />}
+          {activeTab === "mytasks" && (
+            <AdminMyTasksOnly />
+          )}
           {activeTab === "boxfiles" && <BoxFileManagement />}
           {activeTab === "employees" && <EmployeeManagement />}
           {activeTab === "analytics" && <AnalyticsCharts />}
           {activeTab === "sales" && <SalesReport />}
           {activeTab === "performance" && <PerformanceReport />}
+          {activeTab === "chat" && <AdminChatTelegram />}
         </div>
       </div>
     </div>

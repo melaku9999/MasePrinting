@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { FileUpload } from "@/components/files/file-upload"
 import { FileViewer } from "@/components/files/file-viewer"
+import { TaskDetails } from "@/components/tasks/task-details"
+import { BoxFileManagement } from "@/components/files/box-file-management"
 import {
   CheckCircle2,
   Clock,
@@ -32,10 +34,10 @@ import {
   Menu,
   Home,
   Folder,
+  Settings,
 } from "lucide-react"
 import { mockTasks, mockCustomers, mockFiles } from "@/lib/auth"
-import type { User as AuthUser } from "@/lib/auth"
-import type { File } from "@/components/files/file-management"
+import type { User as AuthUser, BoxFile } from "@/lib/auth"
 
 interface EmployeeDashboardProps {
   user: AuthUser
@@ -53,6 +55,8 @@ export function EmployeeDashboard({ user, onLogout }: EmployeeDashboardProps) {
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null)
   const [viewingFile, setViewingFile] = useState<any>(null)
   const [selectedBoxFile, setSelectedBoxFile] = useState("")
+  const [viewMode, setViewMode] = useState<"list" | "view">("list")
+  const [selectedTask, setSelectedTask] = useState<any>(null)
 
   const myTasks = mockTasks.filter((task) => task.assignedTo === user.id)
   const pendingTasks = myTasks.filter((task) => task.status === "pending")
@@ -130,7 +134,23 @@ export function EmployeeDashboard({ user, onLogout }: EmployeeDashboardProps) {
     { id: "tasks", label: "My Tasks", icon: CheckCircle2 },
     { id: "files", label: "Box Files", icon: Folder },
     { id: "notifications", label: "Notifications", icon: Bell },
+    { id: "profile", label: "Profile Settings", icon: Settings },
   ]
+
+  // Handler for viewing a task (for View button)
+  const handleViewTask = (task: any) => {
+    setSelectedTask(task)
+    setViewMode("view")
+  }
+
+  const handleBackToList = () => {
+    setSelectedTask(null)
+    setViewMode("list")
+  }
+
+  const handleProfileNavigation = () => {
+    window.location.href = '/employee/profile'
+  }
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -158,7 +178,13 @@ export function EmployeeDashboard({ user, onLogout }: EmployeeDashboardProps) {
                   key={item.id}
                   variant={activeTab === item.id ? "secondary" : "ghost"}
                   className={`w-full justify-start gap-3 ${!sidebarOpen && "px-2"}`}
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => {
+                    if (item.id === 'profile') {
+                      handleProfileNavigation()
+                    } else {
+                      setActiveTab(item.id)
+                    }
+                  }}
                 >
                   <Icon className="h-4 w-4" />
                   {sidebarOpen && <span>{item.label}</span>}
@@ -405,202 +431,76 @@ export function EmployeeDashboard({ user, onLogout }: EmployeeDashboardProps) {
                 <Badge variant="outline">{myTasks.length} Total Tasks</Badge>
               </div>
 
-              <div className="space-y-4">
-                {myTasks.map((task) => (
-                  <Card
-                    key={task.id}
-                    className="cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => setFocusedTask(task)}
-                  >
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold">{task.title}</h3>
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant={
-                              task.priority === "high"
-                                ? "destructive"
-                                : task.priority === "medium"
+              {viewMode === "view" && selectedTask ? (
+                <TaskDetails
+                  task={selectedTask}
+                  onEdit={() => {}}
+                  onBack={handleBackToList}
+                  allowSubtaskCreation={true}
+                />
+              ) : (
+                <div className="space-y-4">
+                  {myTasks.map((task) => (
+                    <Card
+                      key={task.id}
+                      className="cursor-pointer hover:shadow-md transition-shadow"
+                    >
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-lg font-semibold">{task.title}</h3>
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant={
+                                task.priority === "high"
+                                  ? "destructive"
+                                  : task.priority === "medium"
                                   ? "default"
                                   : "secondary"
-                            }
-                          >
-                            {task.priority}
-                          </Badge>
-                          <Badge
-                            variant={
-                              task.status === "completed"
-                                ? "default"
-                                : task.status === "in-progress"
+                              }
+                            >
+                              {task.priority}
+                            </Badge>
+                            <Badge
+                              variant={
+                                task.status === "completed"
+                                  ? "default"
+                                  : task.status === "in-progress"
                                   ? "secondary"
                                   : "outline"
-                            }
-                          >
-                            {task.status}
-                          </Badge>
-                        </div>
-                      </div>
-                      <p className="text-muted-foreground mb-4">{task.description}</p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">
-                          Due: {new Date(task.dueDate).toLocaleDateString()}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <Progress value={task.progress} className="w-24 h-2" />
-                          <span className="text-sm">{task.progress}%</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {activeTab === "files" && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold text-card-foreground">Box Files</h2>
-                  <p className="text-muted-foreground">Access customer documents from your assigned tasks</p>
-                </div>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button className="bg-primary hover:bg-primary/90">
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Files
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                      <DialogTitle>Upload Files to Box File</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="boxfile-select">Select Box File</Label>
-                        <Select value={selectedBoxFile} onValueChange={setSelectedBoxFile}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Choose a customer's box file..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {accessibleCustomers.map((customer) => (
-                              <SelectItem key={customer.id} value={customer.id}>
-                                {customer.name} - {customer.email}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      {selectedBoxFile && (
-                        <FileUpload onUpload={(files) => console.log("Files uploaded to:", selectedBoxFile, files)} />
-                      )}
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-
-              {/* Search */}
-              <div className="flex items-center gap-4">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search customers or files..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <Badge variant="outline" className="text-sm">
-                  {filteredBoxFiles.length} Accessible Box Files
-                </Badge>
-              </div>
-
-              {/* Box Files Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredBoxFiles.map((boxFile) => (
-                  <Card key={boxFile.customer.id} className="hover:shadow-md transition-shadow">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <FolderOpen className="h-5 w-5 text-primary" />
-                          <div>
-                            <CardTitle className="text-lg">{boxFile.customer.name}</CardTitle>
-                            <p className="text-sm text-muted-foreground">{boxFile.customer.email}</p>
+                              }
+                            >
+                              {task.status}
+                            </Badge>
                           </div>
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <Eye className="h-4 w-4 mr-2" />
-                              View All Files
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Files: {boxFile.files.length}</span>
-                        <span className="text-muted-foreground">Size: {formatFileSize(boxFile.totalSize)}</span>
-                      </div>
-
-                      {/* Recent Files Preview */}
-                      <div className="space-y-2">
-                        <h4 className="text-sm font-medium">Recent Files</h4>
-                        {boxFile.files.slice(0, 3).map((file) => (
-                          <div key={file.id} className="flex items-center gap-3 p-2 bg-muted rounded-lg">
-                            {getFileIcon(file.type)}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">{file.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {formatFileSize(file.size)} • {new Date(file.uploadedAt).toLocaleDateString()}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Button variant="ghost" size="sm" onClick={() => setViewingFile(file)}>
-                                <Eye className="h-3 w-3" />
-                              </Button>
-                              <Button variant="ghost" size="sm">
-                                <Download className="h-3 w-3" />
-                              </Button>
-                            </div>
+                        <p className="text-muted-foreground mb-4">{task.description}</p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">
+                            Due: {new Date(task.dueDate).toLocaleDateString()}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <Progress value={task.progress} className="w-24 h-2" />
+                            <span className="text-sm">{task.progress}%</span>
                           </div>
-                        ))}
-                        {boxFile.files.length > 3 && (
                           <Button
                             variant="outline"
                             size="sm"
-                            className="w-full bg-transparent"
-                            onClick={() => setSelectedCustomer(boxFile.customer.id)}
+                            onClick={() => handleViewTask(task)}
+                            className="flex items-center gap-1 bg-transparent"
                           >
-                            View All {boxFile.files.length} Files
+                            <Eye className="h-4 w-4" />
+                            View
                           </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              {filteredBoxFiles.length === 0 && (
-                <Card>
-                  <CardContent className="text-center py-12">
-                    <FolderOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium mb-2">No Box Files Available</h3>
-                    <p className="text-muted-foreground">
-                      You don't have access to any customer box files yet. Box files are available based on your
-                      assigned tasks.
-                    </p>
-                  </CardContent>
-                </Card>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               )}
             </div>
           )}
+
+          {activeTab === "files" && <BoxFileManagement />}
 
           {activeTab === "notifications" && (
             <Card>
@@ -637,7 +537,14 @@ export function EmployeeDashboard({ user, onLogout }: EmployeeDashboardProps) {
             <DialogHeader>
               <DialogTitle>{viewingFile.name}</DialogTitle>
             </DialogHeader>
-            <FileViewer file={viewingFile} />
+            <FileViewer 
+              file={viewingFile} 
+              onBack={() => setViewingFile(null)}
+              onDelete={() => {
+                console.log("Delete file:", viewingFile.id)
+                setViewingFile(null)
+              }}
+            />
           </DialogContent>
         </Dialog>
       )}
