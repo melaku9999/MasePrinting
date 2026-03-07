@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { EmployeeDashboard } from "@/components/dashboards/employee-dashboard"
-import { mockUsers } from "@/lib/auth"
+import { mockUsers, logout } from "@/lib/auth"
 import type { User } from "@/lib/auth"
 
 export default function EmployeePage() {
@@ -11,11 +11,10 @@ export default function EmployeePage() {
     mockUsers.find(u => u.role === "employee") || mockUsers[1]
   )
 
-  const handleLogout = () => {
-    // Handle logout logic here
+  const handleLogout = async () => {
     console.log("Logging out...")
-    // In a real app, this would clear the session and redirect to login
-    window.location.href = '/'
+    await logout()
+    window.location.href = '/login'
   }
 
   return (

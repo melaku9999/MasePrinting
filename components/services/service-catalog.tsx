@@ -1,39 +1,122 @@
-"use client"
+﻿"use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Search, Plus, Edit, Settings, DollarSign, ArrowLeft, User, CheckCircle2, AlertCircle, Building } from "lucide-react"
-import { mockServices, mockCustomers, type Service } from "@/lib/auth"
+import { 
+  Search, 
+  Plus, 
+  Edit, 
+  Building, 
+  DollarSign, 
+  ChevronLeft, 
+  ChevronRight, 
+  AlertCircle,
+  Clock,
+  FileText,
+  Eye
+} from "lucide-react"
+import { type Service, type Customer, mockCustomers } from "@/lib/auth"
+import { cn } from "@/lib/utils"
+import { servicesApi } from "@/lib/api"
+import { toast } from "sonner"
 
 interface ServiceCatalogProps {
+  onViewService: (service: Service) => void
   onEditService: (service: Service) => void
   onAddService: () => void
   onAssignService: (service: Service) => void
 }
 
-export function ServiceCatalog({ onEditService, onAddService, onAssignService }: ServiceCatalogProps) {
+export function ServiceCatalog({ onViewService, onEditService, onAddService, onAssignService }: ServiceCatalogProps) {
   const [searchTerm, setSearchTerm] = useState("")
-  const [services, setServices] = useState<Service[]>(mockServices)
-  const [selectedService, setSelectedService] = useState<Service | null>(null)
-  const [editService, setEditService] = useState<Service | null>(null)
+  const [services, setServices] = useState<Service[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const [hasNext, setHasNext] = useState(false)
+  const [hasPrevious, setHasPrevious] = useState(false)
 
-  // Find customers subscribed to a service
-  const getSubscribedCustomers = (serviceId: string) => {
-    return mockCustomers.filter((customer: any) =>
-      customer.subscriptions && customer.subscriptions.includes(serviceId)
-    )
+  // Fetch services from API
+  const fetchServices = async (page: number = 1) => {
+    try {
+      setLoading(true)
+      const response = await servicesApi.getAll({ page, page_size: 12 })
+      
+      let servicesData: any[] = []
+      let paginationInfo: { 
+        count: number; 
+        next: string | null; 
+        previous: string | null; 
+        totalPages: number 
+      } = {
+        count: 0,
+        next: null,
+        previous: null,
+        totalPages: 1
+      }
+      
+      if (response && response.results) {
+        servicesData = response.results
+        paginationInfo = {
+          count: response.count || servicesData.length,
+          next: response.next || null,
+          previous: response.previous || null,
+          totalPages: Math.ceil((response.count || servicesData.length) / 12)
+        }
+      } else if (Array.isArray(response)) {
+        servicesData = response
+        paginationInfo = {
+          count: response.length,
+          next: null,
+          previous: null,
+          totalPages: 1
+        }
+      }
+      
+      if (servicesData) {
+        const transformedServices: Service[] = servicesData.map((service: any) => ({
+          id: service.id.toString(),
+          name: service.name,
+          description: service.description,
+          category: service.category,
+          price: parseFloat(service.price || 0),
+          requiresLicense: false,
+          requiredFields: service.required_fields || [],
+          subtasks: service.subtask_templates ? service.subtask_templates.map((subtask: any) => ({
+            id: subtask.id.toString(),
+            title: subtask.title,
+            description: subtask.description,
+            completed: false,
+            requiresProof: subtask.requires_proof || false,
+            assignedTo: "",
+            additionalCost: null
+          })) : [],
+          status: service.status,
+          recurrence_days: service.recurrence_days,
+        }))
+        setServices(transformedServices)
+        setError(null)
+        setTotalCount(paginationInfo.count)
+        setTotalPages(paginationInfo.totalPages)
+        setHasNext(!!paginationInfo.next)
+        setHasPrevious(!!paginationInfo.previous)
+        setCurrentPage(page)
+      }
+    } catch (err) {
+      setError("Error fetching services: " + err)
+      toast.error("Failed to load services")
+    } finally {
+      setLoading(false)
+    }
   }
 
-  // Find customers waiting for approval for a service
-  const getPendingCustomers = (serviceId: string) => {
-    return mockCustomers.filter((customer: any) =>
-      customer.pendingSubscriptions && customer.pendingSubscriptions.includes(serviceId)
-    )
-  }
+  useEffect(() => {
+    fetchServices(1)
+  }, [])
 
   const filteredServices = services.filter(
     (service) =>
@@ -41,361 +124,205 @@ export function ServiceCatalog({ onEditService, onAddService, onAssignService }:
       service.category.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
-  const handleEditServiceClick = (service: Service) => {
-    setEditService(service)
-  }
-
-  const handleEditServiceSave = (updatedService: Service) => {
-    setServices(services.map(s => s.id === updatedService.id ? updatedService : s))
-    setEditService(null)
-  }
-
-  const handleEditServiceCancel = () => {
-    setEditService(null)
-  }
-
   return (
     <div className="space-y-6">
-      {editService ? (
-        <div className="space-y-6">
-          <div className="flex items-center gap-4 mb-6">
-            <Button variant="outline" size="sm" onClick={handleEditServiceCancel} className="flex items-center gap-2 bg-transparent">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Services
-            </Button>
-            <h2 className="text-2xl font-bold text-card-foreground">Edit Service</h2>
-            <Badge variant="outline" className="text-lg">{editService.category}</Badge>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-xl">{editService.name}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Input
-                    value={editService.name}
-                    onChange={e => setEditService({ ...editService, name: e.target.value })}
-                    placeholder="Service Name"
-                  />
-                  <Textarea
-                    value={editService.description}
-                    onChange={e => setEditService({ ...editService, description: e.target.value })}
-                    placeholder="Service Description"
-                  />
-                  <Input
-                    type="number"
-                    value={editService.price}
-                    onChange={e => setEditService({ ...editService, price: Number(e.target.value) })}
-                    placeholder="Price"
-                  />
-                  <Input
-                    value={editService.category}
-                    onChange={e => setEditService({ ...editService, category: e.target.value })}
-                    placeholder="Category"
-                  />
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={editService.requiresLicense}
-                      onChange={e => setEditService({ ...editService, requiresLicense: e.target.checked })}
-                    />
-                    Requires License
-                  </label>
-                </CardContent>
-              </Card>
-              {/* Subtasks Section */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Plus className="h-5 w-5 text-blue-600" />
-                    Subtasks ({editService.subtasks ? editService.subtasks.length : 0})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {editService.subtasks && editService.subtasks.length > 0 ? (
-                    <div className="space-y-3">
-                      {editService.subtasks.map((subtask, idx) => (
-                        <div key={subtask.id} className="p-3 bg-muted rounded-lg">
-                          <Input
-                            value={subtask.title}
-                            onChange={e => {
-                              const updated = [...editService.subtasks]
-                              updated[idx] = { ...subtask, title: e.target.value }
-                              setEditService({ ...editService, subtasks: updated })
-                            }}
-                            placeholder="Subtask Title"
-                          />
-                          <label className="flex items-center gap-2 mt-2">
-                            <input
-                              type="checkbox"
-                              checked={subtask.completed}
-                              onChange={e => {
-                                const updated = [...editService.subtasks]
-                                updated[idx] = { ...subtask, completed: e.target.checked }
-                                setEditService({ ...editService, subtasks: updated })
-                              }}
-                            />
-                            Completed
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-center text-muted-foreground py-4">No subtasks for this service.</p>
-                  )}
-                </CardContent>
-              </Card>
-              <div className="flex gap-4 pt-4">
-                <Button type="button" onClick={() => handleEditServiceSave(editService)} className="flex-1">
-                  Save Changes
-                </Button>
-                <Button type="button" variant="outline" onClick={handleEditServiceCancel} className="flex-1 bg-transparent">
-                  Cancel
-                </Button>
-              </div>
-            </div>
-            {/* Sidebar Stats (read-only) */}
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Service Stats</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between text-sm">
-                    <span>Subscribers:</span>
-                    <span className="font-medium">{editService.subscribedCustomers ? editService.subscribedCustomers.length : 0}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Pending Approval:</span>
-                    <span className="font-medium text-orange-600">{editService.pendingCustomers ? editService.pendingCustomers.length : 0}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+      {/* Refined Control Bar */}
+      <div className="flex flex-col sm:flex-row items-center gap-3 w-full bg-slate-50/50 p-2 rounded-xl border border-slate-100">
+        <div className="relative flex-1 group w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
+          <Input
+            placeholder="Search services by name or category..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 h-11 border-0 bg-white shadow-sm ring-1 ring-slate-200 focus-visible:ring-2 focus-visible:ring-slate-900 rounded-lg placeholder:text-slate-400 text-sm"
+          />
         </div>
-      ) : selectedService ? (
-        <div className="space-y-6">
-          <div className="flex items-center gap-4 mb-6">
-            <Button variant="outline" size="sm" onClick={() => setSelectedService(null)} className="flex items-center gap-2 bg-transparent">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Services
-            </Button>
-            <h2 className="text-2xl font-bold text-card-foreground">Service Details</h2>
-            <Badge variant="outline" className="text-lg">{selectedService.category}</Badge>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Main Service Info */}
-            <div className="lg:col-span-2 space-y-6">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-xl">{selectedService.name}</CardTitle>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">${selectedService.price.toFixed(2)}</Badge>
-                      {selectedService.requiresLicense && (
-                        <Badge variant="secondary">Requires License</Badge>
-                      )}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-muted-foreground">{selectedService.description}</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex items-center gap-3">
-                      <Building className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Category</p>
-                        <p className="text-sm text-muted-foreground">{selectedService.category}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <DollarSign className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">Price</p>
-                        <p className="text-sm text-muted-foreground">${selectedService.price.toFixed(2)}</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              {/* Subscribed Customers */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5" />
-                    Subscribed Customers ({getSubscribedCustomers(selectedService.id).length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    {getSubscribedCustomers(selectedService.id).map((customer) => (
-                      <div key={customer.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="flex-1 font-medium">{customer.name}</span>
-                        <span className="text-xs text-muted-foreground">{customer.email}</span>
-                      </div>
-                    ))}
-                    {getSubscribedCustomers(selectedService.id).length === 0 && (
-                      <p className="text-center text-muted-foreground py-4">No customers subscribed to this service.</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-              {/* Pending Approval Customers */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <AlertCircle className="h-5 w-5 text-orange-600" />
-                    Waiting for Approval ({getPendingCustomers(selectedService.id).length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    {getPendingCustomers(selectedService.id).map((customer) => (
-                      <div key={customer.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="flex-1 font-medium">{customer.name}</span>
-                        <span className="text-xs text-muted-foreground">{customer.email}</span>
-                      </div>
-                    ))}
-                    {getPendingCustomers(selectedService.id).length === 0 && (
-                      <p className="text-center text-muted-foreground py-4">No customers waiting for approval.</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-              {/* Subtasks Section - NEWLY ADDED */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Plus className="h-5 w-5 text-blue-600" />
-                    Subtasks ({selectedService.subtasks ? selectedService.subtasks.length : 0})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {selectedService.subtasks && selectedService.subtasks.length > 0 ? (
-                    <div className="space-y-3">
-                      {selectedService.subtasks.map((subtask) => (
-                        <div key={subtask.id} className="p-3 bg-muted rounded-lg">
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium">{subtask.title}</span>
-                            <Badge variant={subtask.completed ? "success" : "secondary"}>
-                              {subtask.completed ? "Completed" : "Pending"}
-                            </Badge>
-                          </div>
-                          {subtask.requiresProof && (
-                            <div className="text-xs text-muted-foreground mt-1">Requires Proof</div>
-                          )}
-                          {subtask.additionalCost && (
-                            <div className="text-xs text-muted-foreground mt-1">
-                              Additional Cost: ${subtask.additionalCost.amount} ({subtask.additionalCost.comment})
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-center text-muted-foreground py-4">No subtasks for this service.</p>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-            {/* Sidebar Stats */}
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Service Stats</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between text-sm">
-                    <span>Subscribers:</span>
-                    <span className="font-medium">{getSubscribedCustomers(selectedService.id).length}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Pending Approval:</span>
-                    <span className="font-medium text-orange-600">{getPendingCustomers(selectedService.id).length}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+        <div className="flex items-center gap-2">
+          <Button 
+            onClick={onAddService} 
+            className="h-11 px-6 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold shadow-lg transition-all active:scale-95 shrink-0"
+          >
+            <Plus className="h-4 w-4 mr-2" /> New Service
+          </Button>
+        </div>
+      </div>
+
+      {/* Loading and Error States */}
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-20 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+          <div className="w-10 h-10 rounded-full border-2 border-slate-200 border-t-slate-800 animate-spin mb-4" />
+          <p className="text-sm font-medium text-slate-500">Curating service portfolio...</p>
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center bg-red-50/50 rounded-2xl border border-dashed border-red-200">
+          <AlertCircle className="h-10 w-10 text-red-500 mb-3" />
+          <p className="text-sm font-semibold text-slate-900 mb-1">Portfolio Sync Failed</p>
+          <p className="text-xs text-slate-600 max-w-sm mb-6">{error}</p>
+          <Button onClick={() => fetchServices(1)} variant="outline" className="rounded-xl border-slate-200 hover:bg-slate-50">
+            Retry Connection
+          </Button>
         </div>
       ) : (
-        <div>
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-card-foreground">Service Catalog</h2>
-            <Button onClick={onAddService} className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Add Service
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filteredServices.map((service) => (
+            <div
+              key={service.id}
+              className="group relative flex flex-col bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-xl hover:shadow-slate-200/50 hover:border-slate-300 transition-all duration-300 transform hover:-translate-y-1"
+            >
+              {/* Category Badge */}
+              <div className="flex items-start justify-between mb-4">
+                <Badge variant="secondary" className="bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors border-none font-semibold text-[10px] uppercase tracking-wider">
+                  {service.category}
+                </Badge>
+                <div className="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center text-slate-900 group-hover:bg-slate-900 group-hover:text-white transition-all duration-300 shadow-sm border border-slate-100">
+                  <Building className="h-3.5 w-3.5" />
+                </div>
+              </div>
+
+              {/* Title and Price */}
+              <div className="mb-3">
+                <h3 className="font-bold text-slate-900 group-hover:text-slate-900 transition-colors leading-tight mb-1">
+                  {service.name}
+                </h3>
+                <div className="flex items-baseline gap-1.5 pt-1">
+                  <span className="text-xl font-black text-slate-900 leading-none">
+                    ${service.price.toFixed(0)}
+                  </span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">base price</span>
+                </div>
+              </div>
+
+              {/* Description */}
+              <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-6 h-8">
+                {service.description || "Professional service offering for enterprise compliance and business growth."}
+              </p>
+
+              {/* Preview Chips */}
+              <div className="flex flex-wrap gap-2 mb-6">
+                {service.subtasks && service.subtasks.length > 0 && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-blue-50/50 rounded-lg text-[10px] font-bold text-blue-600 border border-blue-100/50">
+                    <Clock className="h-2.5 w-2.5" />
+                    {service.subtasks.length} STEPS
+                  </div>
+                )}
+                {service.requiredFields && service.requiredFields.length > 0 && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-purple-50/50 rounded-lg text-[10px] font-bold text-purple-600 border border-purple-100/50">
+                    <FileText className="h-2.5 w-2.5" />
+                    {service.requiredFields.length} REQ.
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-auto pt-4 border-t border-slate-100 flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onViewService(service)}
+                  className="flex-1 h-9 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-all active:scale-95"
+                >
+                  <Eye className="h-3.5 w-3.5 mr-1.5" />
+                  Review
+                </Button>
+                <div className="flex gap-1.5">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onEditService(service)}
+                    className="h-9 w-9 rounded-xl border border-slate-100/50 hover:bg-slate-50 text-slate-400 hover:text-slate-900 transition-all active:scale-95"
+                  >
+                    <Edit className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    onClick={() => onAssignService(service)}
+                    className="h-9 w-9 rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-200 transition-all active:scale-95"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Refined Pagination Controls */}
+      {!loading && !error && services.length > 0 && totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 p-6 bg-slate-50/50 rounded-2xl border border-slate-100 mt-8">
+          <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+            Showing Page <span className="text-slate-900">{currentPage}</span> of <span className="text-slate-900">{totalPages}</span> • <span className="text-slate-900">{totalCount}</span> Solutions Identified
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchServices(currentPage - 1)}
+              disabled={!hasPrevious || loading}
+              className="h-10 px-4 border-slate-200 bg-white hover:bg-slate-50 hover:text-slate-900 rounded-xl font-bold text-xs transition-all disabled:opacity-50"
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" /> Prev
+            </Button>
+            
+            <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
+              {[...Array(totalPages)].map((_, i) => {
+                const pageNum = i + 1;
+                if (pageNum === 1 || pageNum === totalPages || (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)) {
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={pageNum === currentPage ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => fetchServices(pageNum)}
+                      disabled={loading}
+                      className={cn(
+                        "w-8 h-8 p-0 rounded-lg text-xs font-black transition-all",
+                        pageNum === currentPage 
+                          ? "bg-slate-900 text-white hover:bg-slate-800 shadow-md" 
+                          : "text-slate-400 hover:text-slate-900 hover:bg-slate-50"
+                      )}
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                }
+                return null;
+              })}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchServices(currentPage + 1)}
+              disabled={!hasNext || loading}
+              className="h-10 px-4 border-slate-200 bg-white hover:bg-slate-50 hover:text-slate-900 rounded-xl font-bold text-xs transition-all disabled:opacity-50"
+            >
+              Next <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           </div>
+        </div>
+      )}
 
-          <div className="flex items-center gap-8 my-8">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search services..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+      {/* Empty State */}
+      {!loading && !error && filteredServices.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-20 text-center bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+          <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center mb-6 shadow-sm border border-slate-100">
+            <Search className="h-6 w-6 text-slate-300" />
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredServices.map((service) => (
-              <Card key={service.id} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{service.name}</CardTitle>
-                    <Badge variant="outline">{service.category}</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">{service.description}</p>
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-semibold text-lg">${service.price.toFixed(2)}</span>
-                  </div>
-                  {service.requiresLicense && (
-                    <Badge variant="secondary" className="w-fit">
-                      Requires License
-                    </Badge>
-                  )}
-                  <div className="flex items-center gap-2 pt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onEditService(service)}
-                      className="flex-1 bg-transparent"
-                    >
-                      Edit
-                    </Button>
-                    <Button size="sm" onClick={() => onAssignService(service)} className="flex-1">
-                      Assign
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="flex-1"
-                      onClick={() => setSelectedService(service)}
-                    >
-                      View
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {filteredServices.length === 0 && (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <p className="text-muted-foreground">No services found matching your search.</p>
-              </CardContent>
-            </Card>
+          <p className="text-sm font-bold text-slate-900 mb-2">Portfolio Empty</p>
+          <p className="text-xs text-slate-500 max-w-xs mb-8">
+            {searchTerm
+              ? "No services matched your current search filters. Check parameters and retry."
+              : "Synchronize your first service to begin managing your enterprise catalog."}
+          </p>
+          {searchTerm ? (
+            <Button variant="outline" className="rounded-xl border-slate-200" onClick={() => setSearchTerm("")}>
+              Clear Active Filters
+            </Button>
+          ) : (
+            <Button className="rounded-xl bg-slate-900 hover:bg-slate-800 px-6" onClick={onAddService}>
+              <Plus className="h-4 w-4 mr-2" />
+              Initiate First Service
+            </Button>
           )}
         </div>
       )}

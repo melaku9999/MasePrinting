@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -32,14 +32,28 @@ interface ProfileManagementProps {
   onBack?: () => void
   onSave?: (updatedUser: Partial<AuthUser>) => void
   showBackButton?: boolean
+  inline?: boolean
 }
 
-export function ProfileManagement({ user, onBack, onSave, showBackButton = true }: ProfileManagementProps) {
+export function ProfileManagement({ user, onBack, onSave, showBackButton = true, inline = false }: ProfileManagementProps) {
   const [activeTab, setActiveTab] = useState("personal")
   const [isEditing, setIsEditing] = useState(false)
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Handle responsive behavior
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
   
   // Profile form state
   const [profileData, setProfileData] = useState({
@@ -100,14 +114,23 @@ export function ProfileManagement({ user, onBack, onSave, showBackButton = true 
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {showBackButton && (
-        <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={onBack} className="flex items-center gap-2">
+    <div className={inline ? "space-y-6" : "max-w-4xl mx-auto space-y-6 px-4 lg:px-0"}>
+      {showBackButton && !inline && (
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <Button variant="outline" onClick={onBack} className="flex items-center gap-2 w-full sm:w-auto">
             <ArrowLeft className="h-4 w-4" />
             Back to Dashboard
           </Button>
-          <h1 className="text-2xl font-bold">Profile Settings</h1>
+          <h1 className="text-xl lg:text-2xl font-bold text-center sm:text-left">Profile Settings</h1>
+        </div>
+      )}
+
+      {inline && (
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+          <h2 className="text-xl lg:text-2xl font-bold text-center sm:text-left">Profile Settings</h2>
+          <Badge variant="outline">
+            {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+          </Badge>
         </div>
       )}
 
@@ -116,14 +139,14 @@ export function ProfileManagement({ user, onBack, onSave, showBackButton = true 
         <Card className="lg:col-span-1">
           <CardContent className="pt-6">
             <div className="flex flex-col items-center text-center space-y-4">
-              <Avatar className="h-20 w-20">
-                <AvatarFallback className="text-xl bg-primary text-primary-foreground">
+              <Avatar className="h-16 w-16 lg:h-20 lg:w-20">
+                <AvatarFallback className="text-lg lg:text-xl bg-primary text-primary-foreground">
                   {user.name.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <h3 className="font-semibold text-lg">{user.name}</h3>
-                <p className="text-sm text-muted-foreground">{user.email}</p>
+                <h3 className="font-semibold text-base lg:text-lg break-words">{user.name}</h3>
+                <p className="text-sm text-muted-foreground break-all">{user.email}</p>
                 <Badge variant="outline" className="mt-2">
                   {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                 </Badge>
@@ -135,25 +158,25 @@ export function ProfileManagement({ user, onBack, onSave, showBackButton = true 
         {/* Main Content */}
         <div className="lg:col-span-3">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="personal" className="flex items-center gap-2">
+            <TabsList className={`grid w-full ${isMobile ? 'grid-cols-1' : 'grid-cols-3'} ${isMobile ? 'h-auto' : ''}`}>
+              <TabsTrigger value="personal" className={`flex items-center gap-2 ${isMobile ? 'justify-start p-3' : ''}`}>
                 <User className="h-4 w-4" />
-                Personal Info
+                <span className={isMobile ? 'text-sm' : ''}>Personal Info</span>
               </TabsTrigger>
-              <TabsTrigger value="security" className="flex items-center gap-2">
+              <TabsTrigger value="security" className={`flex items-center gap-2 ${isMobile ? 'justify-start p-3' : ''}`}>
                 <Shield className="h-4 w-4" />
-                Security
+                <span className={isMobile ? 'text-sm' : ''}>Security</span>
               </TabsTrigger>
-              <TabsTrigger value="notifications" className="flex items-center gap-2">
+              <TabsTrigger value="notifications" className={`flex items-center gap-2 ${isMobile ? 'justify-start p-3' : ''}`}>
                 <Bell className="h-4 w-4" />
-                Notifications
+                <span className={isMobile ? 'text-sm' : ''}>Notifications</span>
               </TabsTrigger>
             </TabsList>
 
             {/* Personal Information Tab */}
             <TabsContent value="personal" className="space-y-4">
               <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
+                <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
                   <CardTitle className="flex items-center gap-2">
                     <Settings className="h-5 w-5" />
                     Personal Information
@@ -161,12 +184,13 @@ export function ProfileManagement({ user, onBack, onSave, showBackButton = true 
                   <Button
                     variant={isEditing ? "default" : "outline"}
                     onClick={() => setIsEditing(!isEditing)}
+                    className="w-full sm:w-auto"
                   >
                     {isEditing ? "Cancel" : "Edit Profile"}
                   </Button>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">Full Name</Label>
                       <Input

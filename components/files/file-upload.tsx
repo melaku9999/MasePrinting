@@ -69,19 +69,20 @@ export function FileUpload({
     setUploading(true)
     setUploadProgress(0)
 
-    // Simulate upload progress
+    // Simulation for UI feedback
+    let progress = 0
     const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval)
-          setUploading(false)
-          onUploadComplete(files)
-          setFiles([])
-          return 100
-        }
-        return prev + 10
-      })
-    }, 200)
+      progress += 20
+      if (progress >= 100) {
+        clearInterval(interval)
+        setUploadProgress(100)
+        setUploading(false)
+        onUploadComplete(files)
+        setFiles([])
+      } else {
+        setUploadProgress(progress)
+      }
+    }, 150)
   }
 
   return (

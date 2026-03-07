@@ -46,14 +46,14 @@ export default function BoxFilePage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 sm:mb-8 gap-4">
           <div className="flex items-center gap-3">
             <Archive className="h-8 w-8 text-blue-600" />
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">My Box File</h1>
-              <p className="text-gray-600">Access all your documents and files</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Box File</h1>
+              <p className="text-gray-600 text-sm sm:text-base">Access all your documents and files</p>
             </div>
           </div>
           <Badge variant="secondary" className="text-sm">
@@ -63,7 +63,7 @@ export default function BoxFilePage() {
 
         {/* Search and Filters */}
         <Card className="mb-6">
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
                 <div className="relative">
@@ -76,7 +76,7 @@ export default function BoxFilePage() {
                   />
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {categories.map((category) => (
                   <Button
                     key={category.value}
@@ -94,9 +94,9 @@ export default function BoxFilePage() {
         </Card>
 
         {/* Files Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredFiles.map((file) => (
-            <Card key={file.id} className="hover:shadow-lg transition-shadow">
+            <Card key={file.id} className="hover:shadow-lg transition-shadow h-full">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   {getFileIcon(file.type)}
@@ -105,25 +105,25 @@ export default function BoxFilePage() {
                   </Badge>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex flex-col h-full">
                 <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{file.name}</h3>
-                <div className="space-y-2 text-sm text-gray-600 mb-4">
+                <div className="space-y-2 text-sm text-gray-600 mb-4 flex-grow">
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    <span>{file.uploadDate}</span>
+                    <Calendar className="h-4 w-4 flex-shrink-0" />
+                    <span>{new Date(file.uploadedAt).toLocaleDateString()}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
+                    <User className="h-4 w-4 flex-shrink-0" />
                     <span>Size: {formatFileSize(file.size)}</span>
                   </div>
                   {file.taskId && (
                     <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
+                      <FileText className="h-4 w-4 flex-shrink-0" />
                       <span>Task: {file.taskId}</span>
                     </div>
                   )}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 mt-auto">
                   <Button variant="outline" size="sm" className="flex-1 bg-transparent">
                     <Eye className="h-4 w-4 mr-2" />
                     View

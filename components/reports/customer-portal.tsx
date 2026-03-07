@@ -80,21 +80,21 @@ export function CustomerPortal() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-card-foreground">Customer Support Portal</h2>
+    <div className="space-y-6 w-full overflow-hidden">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <h2 className="text-2xl font-bold text-card-foreground break-words">Customer Support Portal</h2>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 w-full overflow-hidden">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="tickets">Support Tickets</TabsTrigger>
           <TabsTrigger value="new-ticket">Create Ticket</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="tickets" className="space-y-6">
+        <TabsContent value="tickets" className="space-y-6 w-full overflow-hidden">
           {/* Ticket Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
+            <Card className="w-full">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Open Tickets</CardTitle>
                 <MessageSquare className="h-4 w-4 text-muted-foreground" />
@@ -107,7 +107,7 @@ export function CustomerPortal() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="w-full">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">In Progress</CardTitle>
                 <Clock className="h-4 w-4 text-muted-foreground" />
@@ -120,7 +120,7 @@ export function CustomerPortal() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="w-full">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Resolved</CardTitle>
                 <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
@@ -131,7 +131,7 @@ export function CustomerPortal() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="w-full">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Avg Response</CardTitle>
                 <AlertTriangle className="h-4 w-4 text-muted-foreground" />
@@ -144,30 +144,30 @@ export function CustomerPortal() {
           </div>
 
           {/* Tickets List */}
-          <div className="space-y-4">
+          <div className="space-y-4 w-full">
             {supportTickets.map((ticket) => (
-              <Card key={ticket.id} className="hover:shadow-md transition-shadow">
+              <Card key={ticket.id} className="hover:shadow-md transition-shadow w-full">
                 <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-4">
+                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-semibold text-card-foreground">{ticket.title}</h3>
+                      <div className="flex flex-wrap items-center gap-3 mb-2">
+                        <h3 className="text-lg font-semibold text-card-foreground break-words">{ticket.title}</h3>
                         <Badge className={getStatusColor(ticket.status)}>{ticket.status}</Badge>
                         <Badge variant="outline" className={getPriorityColor(ticket.priority)}>
                           {ticket.priority}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground mb-3">{ticket.description}</p>
+                      <p className="text-sm text-muted-foreground mb-3 break-words">{ticket.description}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                       <span>Created: {new Date(ticket.createdAt).toLocaleDateString()}</span>
                       <span>Updated: {new Date(ticket.updatedAt).toLocaleDateString()}</span>
                       <span>{ticket.responses} responses</span>
                     </div>
-                    <Button variant="outline" size="sm" className="bg-transparent">
+                    <Button variant="outline" size="sm" className="bg-transparent w-full sm:w-auto">
                       View Details
                     </Button>
                   </div>
@@ -177,7 +177,7 @@ export function CustomerPortal() {
           </div>
 
           {supportTickets.length === 0 && (
-            <Card>
+            <Card className="w-full">
               <CardContent className="p-8 text-center">
                 <MessageSquare className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">No support tickets yet.</p>
@@ -189,8 +189,8 @@ export function CustomerPortal() {
           )}
         </TabsContent>
 
-        <TabsContent value="new-ticket">
-          <Card className="max-w-2xl mx-auto">
+        <TabsContent value="new-ticket" className="w-full">
+          <Card className="max-w-2xl mx-auto w-full">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Plus className="h-5 w-5" />
@@ -239,8 +239,8 @@ export function CustomerPortal() {
                   />
                 </div>
 
-                <div className="flex items-center gap-4 pt-4">
-                  <Button type="submit" className="flex-1">
+                <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
+                  <Button type="submit" className="w-full sm:w-1/2">
                     <Send className="h-4 w-4 mr-2" />
                     Submit Ticket
                   </Button>
@@ -248,7 +248,7 @@ export function CustomerPortal() {
                     type="button"
                     variant="outline"
                     onClick={() => setActiveTab("tickets")}
-                    className="flex-1 bg-transparent"
+                    className="w-full sm:w-1/2 bg-transparent"
                   >
                     Cancel
                   </Button>

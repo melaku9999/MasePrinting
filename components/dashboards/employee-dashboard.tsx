@@ -1,20 +1,33 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Separator } from "@/components/ui/separator"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { FileUpload } from "@/components/files/file-upload"
-import { FileViewer } from "@/components/files/file-viewer"
-import { TaskDetails } from "@/components/tasks/task-details"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { cn } from "@/lib/utils"
 import { BoxFileManagement } from "@/components/files/box-file-management"
+import { ProfileManagement } from "@/components/profile/profile-management"
+import { EmployeeManagement } from "@/components/employees/employee-management"
+import { CustomerManagement } from "@/components/customers/customer-management"
+import { SalesManagement } from "@/components/sales/sales-management"
+import { FinancialManager, RevenueHub } from "@/components/financial"
+import { SharedTaskInterface } from "@/components/tasks/shared-task-interface"
+import { InventoryManager } from "@/components/inventory/inventory-manager"
+import { ServiceMarketplace } from "@/components/services/service-marketplace"
 import {
   CheckCircle2,
   Clock,
@@ -24,664 +37,553 @@ import {
   Bell,
   Calendar,
   Search,
-  FolderOpen,
-  ImageIcon,
-  Archive,
-  MoreVertical,
-  Upload,
-  Eye,
-  Download,
-  Menu,
   Home,
   Folder,
   Settings,
+  User,
+  UserCheck,
+  TrendingUp,
+  Target,
+  Menu,
+  ChevronLeft,
+  ChevronRight,
+  CircleDot,
+  ArrowUpRight,
+  Users,
+  ShoppingCart,
+  DollarSign,
+  LineChart,
+  Boxes,
+  Briefcase
 } from "lucide-react"
-import { mockTasks, mockCustomers, mockFiles } from "@/lib/auth"
-import type { User as AuthUser, BoxFile } from "@/lib/auth"
+import { employeesApi } from "@/lib/api"
+import { mapBackendTaskToFrontend } from "@/lib/task-utils"
+import { connectTaskSocket } from "@/lib/websocket"
+import { toast } from "sonner"
+import type { User as AuthUser } from "@/lib/auth"
 
 interface EmployeeDashboardProps {
   user: AuthUser
   onLogout: () => void
 }
 
+interface Notification {
+  id: string
+  type: 'urgent' | 'warning' | 'success' | 'info'
+  title: string
+  message: string
+  timestamp: Date
+  read: boolean
+  taskId?: string | null
+}
+
+const navigationGroups = [
+  {
+    label: "Main",
+    items: [
+      { id: "overview", label: "Overview", icon: Home },
+      { id: "tasks", label: "My Tasks", icon: CheckCircle2 },
+    ],
+  },
+  {
+    label: "Operations",
+    items: [
+      { id: "services", label: "Services", icon: Briefcase },
+    ],
+  },
+  {
+    label: "Inventory & Financials",
+    items: [
+      { id: "sales", label: "Sales", icon: ShoppingCart },
+      { id: "inventory", label: "Inventory", icon: Boxes },
+      { id: "financial", label: "Finances", icon: DollarSign },
+      { id: "revenue_hub", label: "Revenue Insights", icon: LineChart },
+    ],
+  },
+  {
+    label: "Management",
+    items: [
+      { id: "customers", label: "Customers", icon: Users },
+      // { id: "employees", label: "Employees", icon: UserCheck },
+      { id: "files", label: "Box Files", icon: Folder },
+    ],
+  },
+]
+
+const allNavigationItems = navigationGroups.flatMap((g) => g.items)
+
 export function EmployeeDashboard({ user, onLogout }: EmployeeDashboardProps) {
   const [activeTab, setActiveTab] = useState("overview")
-  const [focusedTask, setFocusedTask] = useState<any>(null)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
-  const [additionalCosts, setAdditionalCosts] = useState<{ [key: string]: { amount: number; comment: string } }>({})
-  const [proofOfWork, setProofOfWork] = useState<{ [key: string]: File[] }>({})
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null)
-  const [viewingFile, setViewingFile] = useState<any>(null)
-  const [selectedBoxFile, setSelectedBoxFile] = useState("")
-  const [viewMode, setViewMode] = useState<"list" | "view">("list")
-  const [selectedTask, setSelectedTask] = useState<any>(null)
+  const [notifications, setNotifications] = useState<Notification[]>([
+    {
+      id: "1",
+      type: "urgent",
+      title: "Urgent Task Assignment",
+      message: "New high-priority customer onboarding task requires immediate attention",
+      timestamp: new Date(Date.now() - 1000 * 60 * 5),
+      read: false,
+      taskId: "task-123"
+    },
+    {
+      id: "2",
+      type: "info",
+      title: "Task Completed",
+      message: "Customer verification process has been completed successfully",
+      timestamp: new Date(Date.now() - 1000 * 60 * 30),
+      read: true,
+      taskId: "task-456"
+    },
+  ])
+  const [tasks, setTasks] = useState<any[]>([])
+  const [isLoadingTasks, setIsLoadingTasks] = useState(false)
 
-  const myTasks = mockTasks.filter((task) => task.assignedTo === user.id)
-  const pendingTasks = myTasks.filter((task) => task.status === "pending")
-  const inProgressTasks = myTasks.filter((task) => task.status === "in-progress")
-  const completedTasks = myTasks.filter((task) => task.status === "completed")
+  const fetchDashboardData = async () => {
+    if (!user.employee_id) return
+    setIsLoadingTasks(true)
+    try {
+      const response = await employeesApi.getTasks(user.employee_id.toString())
+      const mapped = (response.results || []).map(mapBackendTaskToFrontend)
+      setTasks(mapped)
+    } catch (error) {
+      console.error("Failed to fetch dashboard tasks:", error)
+    } finally {
+      setIsLoadingTasks(false)
+    }
+  }
 
-  const overdueTasks = myTasks.filter((task) => {
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024)
+      if (window.innerWidth < 1024) setSidebarCollapsed(true)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    fetchDashboardData()
+
+    // Real-time synchronization
+    const disconnect = connectTaskSocket((update) => {
+      // Refresh tasks if this part of the dashboard needs it
+      console.log('Real-time task update reaching employee portal:', update)
+      fetchDashboardData()
+      
+      // Notify components to refresh
+      window.dispatchEvent(new CustomEvent('refreshTasks'))
+      
+      // Notify only if it's relevant to this employee (if we have the worker ID)
+      if (update.data.assigned_to === user.employee_id) {
+        toast.success(`Task Update: ${update.data.title} is now ${update.data.status}`)
+      }
+    })
+
+    return () => {
+      window.removeEventListener('resize', checkMobile)
+      disconnect()
+    }
+  }, [user.employee_id])
+
+  const pendingTasks = tasks.filter((task) => task.status === "pending")
+  const inProgressTasks = tasks.filter((task) => task.status === "in-progress")
+  const completedTasks = tasks.filter((task) => task.status === "completed")
+  const overdueTasks = tasks.filter((task) => {
     const today = new Date()
     const dueDate = new Date(task.dueDate)
     return dueDate < today && task.status !== "completed"
   })
 
-  const urgentTasks = myTasks.filter((task) => task.priority === "high" && task.status !== "completed")
+  const unreadCount = notifications.filter(n => !n.read).length
 
-  const assignedCustomerIds = [...new Set(myTasks.map((task) => task.customerId))]
-  const accessibleCustomers = mockCustomers.filter((customer) => assignedCustomerIds.includes(customer.id))
-
-  const boxFiles = accessibleCustomers.map((customer) => ({
-    customer,
-    files: mockFiles.filter((file) => file.customerId === customer.id),
-    totalSize: mockFiles.filter((file) => file.customerId === customer.id).reduce((sum, file) => sum + file.size, 0),
-  }))
-
-  const filteredBoxFiles = boxFiles.filter(
-    (boxFile) =>
-      boxFile.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      boxFile.files.some((file) => file.name.toLowerCase().includes(searchTerm.toLowerCase())),
-  )
-
-  const notifications = [
-    ...urgentTasks.map((task) => ({
-      id: `urgent-${task.id}`,
-      type: "urgent",
-      title: "Urgent Task",
-      message: `${task.title} requires immediate attention`,
-      time: "now",
-    })),
-    {
-      id: "new-task",
-      type: "info",
-      title: "New Task Assigned",
-      message: "You have been assigned a new customer onboarding task",
-      time: "2 hours ago",
-    },
-  ]
-
-  const handleSubtaskComplete = (taskId: string, subtaskId: string, completed: boolean) => {
-    console.log(`Subtask ${subtaskId} in task ${taskId} marked as ${completed ? "completed" : "incomplete"}`)
+  const markAsRead = (id: string) => {
+    setNotifications(notifications.map(n => n.id === id ? { ...n, read: true } : n))
   }
 
-  const handleAddCost = (subtaskId: string, amount: number, comment: string) => {
-    setAdditionalCosts((prev) => ({
-      ...prev,
-      [subtaskId]: { amount, comment },
-    }))
+  const handleProfileSave = (updatedUser: Partial<AuthUser>) => {
+    console.log("Profile updated:", updatedUser)
   }
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return "0 Bytes"
-    const k = 1024
-    const sizes = ["Bytes", "KB", "MB", "GB"]
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
-  }
+  const currentPageLabel = allNavigationItems.find((item) => item.id === activeTab)?.label || "Dashboard"
 
-  const getFileIcon = (type: string) => {
-    if (type.includes("image")) return <ImageIcon className="h-4 w-4" />
-    if (type.includes("pdf")) return <FileText className="h-4 w-4" />
-    if (type.includes("zip") || type.includes("archive")) return <Archive className="h-4 w-4" />
-    return <FileText className="h-4 w-4" />
-  }
+  const NavItem = ({ item }: { item: any }) => {
+    const isActive = activeTab === item.id
+    const Icon = item.icon
 
-  const sidebarItems = [
-    { id: "overview", label: "Overview", icon: Home },
-    { id: "tasks", label: "My Tasks", icon: CheckCircle2 },
-    { id: "files", label: "Box Files", icon: Folder },
-    { id: "notifications", label: "Notifications", icon: Bell },
-    { id: "profile", label: "Profile Settings", icon: Settings },
-  ]
-
-  // Handler for viewing a task (for View button)
-  const handleViewTask = (task: any) => {
-    setSelectedTask(task)
-    setViewMode("view")
-  }
-
-  const handleBackToList = () => {
-    setSelectedTask(null)
-    setViewMode("list")
-  }
-
-  const handleProfileNavigation = () => {
-    window.location.href = '/employee/profile'
-  }
-
-  return (
-    <div className="min-h-screen bg-background flex">
-      <aside className={`${sidebarOpen ? "w-64" : "w-16"} bg-card border-r transition-all duration-300 flex flex-col`}>
-        <div className="p-4 border-b">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2">
-              <Menu className="h-4 w-4" />
-            </Button>
-            {sidebarOpen && (
-              <div>
-                <h2 className="font-semibold text-card-foreground">Employee Portal</h2>
-                <p className="text-xs text-muted-foreground">{user.name}</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <nav className="flex-1 p-2">
-          <div className="space-y-1">
-            {sidebarItems.map((item) => {
-              const Icon = item.icon
-              return (
-                <Button
-                  key={item.id}
-                  variant={activeTab === item.id ? "secondary" : "ghost"}
-                  className={`w-full justify-start gap-3 ${!sidebarOpen && "px-2"}`}
-                  onClick={() => {
-                    if (item.id === 'profile') {
-                      handleProfileNavigation()
-                    } else {
-                      setActiveTab(item.id)
-                    }
-                  }}
-                >
-                  <Icon className="h-4 w-4" />
-                  {sidebarOpen && <span>{item.label}</span>}
-                </Button>
-              )
-            })}
-          </div>
-        </nav>
-
-        <div className="p-2 border-t">
+    return (
+      <Tooltip delayDuration={0}>
+        <TooltipTrigger asChild>
           <Button
-            variant="ghost"
-            className={`w-full justify-start gap-3 text-red-600 hover:text-red-700 hover:bg-red-50 ${!sidebarOpen && "px-2"}`}
-            onClick={onLogout}
+            variant={isActive ? "secondary" : "ghost"}
+            className={cn(
+              "w-full justify-start transition-all duration-200",
+              sidebarCollapsed ? "px-2" : "px-3",
+              isActive ? "bg-primary/5 text-primary hover:bg-primary/10" : "text-muted-foreground hover:text-foreground"
+            )}
+            onClick={() => setActiveTab(item.id)}
           >
-            <LogOut className="h-4 w-4" />
-            {sidebarOpen && <span>Logout</span>}
+            <Icon className={cn("h-4 w-4 shrink-0", !sidebarCollapsed && "mr-3")} />
+            {!sidebarCollapsed && <span className="font-medium">{item.label}</span>}
+            {!sidebarCollapsed && isActive && (
+              <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />
+            )}
           </Button>
-        </div>
-      </aside>
+        </TooltipTrigger>
+        {sidebarCollapsed && <TooltipContent side="right">{item.label}</TooltipContent>}
+      </Tooltip>
+    )
+  }
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        <header className="border-b bg-card">
-          <div className="flex items-center justify-between px-6 py-4">
-            <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold text-card-foreground">Employee Dashboard</h1>
-              <Badge variant="outline">Employee</Badge>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button
-                variant="outline"
-                size="sm"
-                className="bg-transparent relative"
-                onClick={() => setShowNotifications(!showNotifications)}
-              >
-                <Bell className="h-4 w-4 mr-2" />
-                Notifications
-                {urgentTasks.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {urgentTasks.length}
-                  </span>
-                )}
-              </Button>
-            </div>
-          </div>
-
-          {showNotifications && (
-            <div className="absolute right-6 top-16 w-80 bg-card border rounded-lg shadow-lg z-50">
-              <div className="p-4 border-b">
-                <h3 className="font-semibold">Notifications</h3>
+  const SidebarContent = () => (
+    <div className="flex flex-col h-full bg-card">
+      {!isMobile && (
+        <div className="p-6 border-b flex items-center justify-between">
+          {!sidebarCollapsed && (
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+                <Target className="h-5 w-5 text-white" />
               </div>
-              <div className="max-h-96 overflow-y-auto">
-                {notifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    className={`p-4 border-b hover:bg-muted ${notification.type === "urgent" ? "bg-red-50 border-l-4 border-l-red-500" : ""}`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-medium text-sm">{notification.title}</p>
-                        <p className="text-sm text-muted-foreground">{notification.message}</p>
-                      </div>
-                      <span className="text-xs text-muted-foreground">{notification.time}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <span className="font-bold text-lg tracking-tight">Portal</span>
             </div>
           )}
-        </header>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="h-8 w-8"
+          >
+            {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </Button>
+        </div>
+      )}
 
-        <div className="flex-1 p-6">
-          {activeTab === "overview" && (
-            <div className="space-y-6">
-              {/* Task Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Pending Tasks</CardTitle>
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-orange-600">{pendingTasks.length}</div>
-                    <p className="text-xs text-muted-foreground">Awaiting start</p>
-                  </CardContent>
-                </Card>
+      <ScrollArea className="flex-1 px-3 py-4">
+        <div className="space-y-6">
+          {navigationGroups.map((group) => (
+            <div key={group.label} className="space-y-1">
+              {!sidebarCollapsed && (
+                <p className="px-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 mb-2">
+                  {group.label}
+                </p>
+              )}
+              {group.items.map((item) => (
+                <NavItem key={item.id} item={item} />
+              ))}
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
 
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-                    <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-primary">{inProgressTasks.length}</div>
-                    <p className="text-xs text-muted-foreground">Currently working</p>
-                  </CardContent>
-                </Card>
+      <div className="p-4 border-t mt-auto">
+        <Button
+          variant="ghost"
+          className={cn(
+            "w-full text-red-600 hover:text-red-700 hover:bg-red-50 transition-colors",
+            sidebarCollapsed ? "justify-center px-0" : "justify-start px-3"
+          )}
+          onClick={onLogout}
+        >
+          <LogOut className={cn("h-4 w-4", !sidebarCollapsed && "mr-3")} />
+          {!sidebarCollapsed && <span className="font-medium">Sign Out</span>}
+        </Button>
+      </div>
+    </div>
+  )
 
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Completed</CardTitle>
-                    <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-secondary">{completedTasks.length}</div>
-                    <p className="text-xs text-muted-foreground">This month</p>
-                  </CardContent>
-                </Card>
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-                    <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-red-600">{overdueTasks.length}</div>
-                    <p className="text-xs text-muted-foreground">Need attention</p>
-                  </CardContent>
-                </Card>
+  return (
+    <TooltipProvider delayDuration={0}>
+      <div className="min-h-screen bg-background flex">
+        {/* Desktop Sidebar */}
+        {!isMobile && (
+          <aside
+            className={cn(
+              "border-r transition-all duration-300 bg-card sticky top-0 h-screen z-40 shadow-sm",
+              sidebarCollapsed ? "w-[70px]" : "w-64"
+            )}
+          >
+            <SidebarContent />
+          </aside>
+        )}
+
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          {/* Header */}
+          <header className="sticky top-0 z-30 flex h-16 items-center border-b bg-card/80 backdrop-blur-md px-4 lg:px-6 shadow-sm">
+            {isMobile && (
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="mr-4">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="p-0 w-64">
+                  <SidebarContent />
+                </SheetContent>
+              </Sheet>
+            )}
+
+            <div className="flex flex-1 items-center gap-4">
+              <div>
+                <h1 className="text-lg font-semibold text-foreground leading-tight">{currentPageLabel}</h1>
+                <p className="text-[12px] text-muted-foreground hidden sm:block">
+                  {activeTab === "overview" ? "Welcome back, " + user.name : "Manage your " + currentPageLabel.toLowerCase()}
+                </p>
               </div>
+            </div>
 
-              {/* Current Tasks & Upcoming Deadlines */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Current Tasks</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {inProgressTasks.length > 0 ? (
-                      inProgressTasks.slice(0, 3).map((task) => (
+            <div className="flex items-center gap-3">
+              <DropdownMenu open={showNotifications} onOpenChange={setShowNotifications}>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="relative h-9 w-9 rounded-full bg-muted/20">
+                    <Bell className="h-4 w-4 text-muted-foreground" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-white ring-2 ring-card">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80 p-0">
+                  <div className="p-4 border-b">
+                    <h3 className="font-semibold">Notifications</h3>
+                  </div>
+                  <ScrollArea className="h-80">
+                    {notifications.length > 0 ? (
+                      notifications.map((notification) => (
                         <div
-                          key={task.id}
-                          className="p-4 bg-muted rounded-lg cursor-pointer hover:bg-muted/80"
-                          onClick={() => setFocusedTask(task)}
+                          key={notification.id}
+                          className={cn(
+                            "p-4 border-b hover:bg-muted/50 transition-colors cursor-pointer flex gap-3",
+                            !notification.read && "bg-primary/5"
+                          )}
+                          onClick={() => markAsRead(notification.id)}
                         >
-                          <div className="flex items-center justify-between mb-2">
-                            <h4 className="font-medium">{task.title}</h4>
-                            <Badge className="bg-primary text-primary-foreground">{task.priority}</Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground mb-3">{task.description}</p>
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span>Progress</span>
-                              <span>{task.progress}%</span>
-                            </div>
-                            <Progress value={task.progress} className="h-2" />
-                          </div>
-                          <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              Due: {new Date(task.dueDate).toLocaleDateString()}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <span>Customer {task.customerId}</span>
-                            </span>
+                          <div className={cn(
+                            "h-2 w-2 rounded-full mt-1.5 shrink-0",
+                            notification.type === 'urgent' ? "bg-red-500" : "bg-blue-500"
+                          )} />
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium leading-none">{notification.title}</p>
+                            <p className="text-xs text-muted-foreground line-clamp-2">{notification.message}</p>
+                            <p className="text-[10px] text-muted-foreground uppercase">{new Date(notification.timestamp).toLocaleTimeString()}</p>
                           </div>
                         </div>
                       ))
                     ) : (
-                      <p className="text-center text-muted-foreground py-8">No tasks in progress</p>
+                      <div className="p-8 text-center text-muted-foreground">No new notifications</div>
                     )}
-                  </CardContent>
-                </Card>
+                  </ScrollArea>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5 text-orange-600" />
-                      Upcoming Deadlines
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {myTasks
-                      .filter((task) => task.status !== "completed")
-                      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
-                      .slice(0, 4)
-                      .map((task) => {
-                        const daysUntilDue = Math.ceil(
-                          (new Date(task.dueDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
-                        )
-                        const isOverdue = daysUntilDue < 0
-                        const isDueSoon = daysUntilDue <= 3 && daysUntilDue >= 0
+              <Separator orientation="vertical" className="h-6 mx-1" />
 
-                        return (
-                          <div key={task.id} className="flex items-center gap-4 p-3 bg-muted rounded-lg">
-                            <div
-                              className={`w-2 h-2 rounded-full ${
-                                isOverdue ? "bg-red-600" : isDueSoon ? "bg-orange-600" : "bg-secondary"
-                              }`}
-                            ></div>
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">{task.title}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {isOverdue ? `${Math.abs(daysUntilDue)} days overdue` : `Due in ${daysUntilDue} days`}
-                              </p>
-                            </div>
-                            <Badge variant={task.priority === "high" ? "destructive" : "outline"}>
-                              {task.priority}
-                            </Badge>
-                          </div>
-                        )
-                      })}
-                    {myTasks.filter((task) => task.status !== "completed").length === 0 && (
-                      <p className="text-center text-muted-foreground py-8">No upcoming deadlines</p>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Quick Actions */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Button className="h-20 flex flex-col gap-2" onClick={() => setActiveTab("tasks")}>
-                      <CheckCircle2 className="h-6 w-6" />
-                      View All Tasks
-                    </Button>
-                    <Button variant="outline" className="h-20 flex flex-col gap-2 bg-transparent">
-                      <Calendar className="h-6 w-6" />
-                      Schedule Meeting
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="h-20 flex flex-col gap-2 bg-transparent"
-                      onClick={() => setActiveTab("files")}
-                    >
-                      <FileText className="h-6 w-6" />
-                      Upload Document
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-9 w-full justify-start gap-2 px-2 hover:bg-muted/30">
+                    <Avatar className="h-7 w-7 border">
+                      <AvatarImage src={user.avatar} />
+                      <AvatarFallback className="bg-primary/10 text-primary">{user.name[0]}</AvatarFallback>
+                    </Avatar>
+                    <div className="hidden md:block text-left">
+                      <p className="text-sm font-semibold leading-none">{user.name}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider">{user.role}</p>
+                    </div>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem onClick={() => setActiveTab("profile")}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>My Profile</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-red-600" onClick={onLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Sign Out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-          )}
+          </header>
 
-          {activeTab === "tasks" && (
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">My Tasks</h2>
-                <Badge variant="outline">{myTasks.length} Total Tasks</Badge>
-              </div>
+          {/* Page Content */}
+          <main className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-8">
+            {activeTab === "overview" && (
+              <div className="max-w-[1400px] mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-3 duration-500">
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    {/* Pending Tasks */}
+                    <Card className="border-l-4 border-l-amber-500 shadow-sm">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pending Tasks</CardTitle>
+                        <Clock className="h-4 w-4 text-amber-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{pendingTasks.length}</div>
+                        <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                           <CircleDot className="h-2 w-2 text-amber-500" /> Awaiting attention
+                        </p>
+                      </CardContent>
+                    </Card>
 
-              {viewMode === "view" && selectedTask ? (
-                <TaskDetails
-                  task={selectedTask}
-                  onEdit={() => {}}
-                  onBack={handleBackToList}
-                  allowSubtaskCreation={true}
-                />
-              ) : (
-                <div className="space-y-4">
-                  {myTasks.map((task) => (
-                    <Card
-                      key={task.id}
-                      className="cursor-pointer hover:shadow-md transition-shadow"
-                    >
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-lg font-semibold">{task.title}</h3>
-                          <div className="flex items-center gap-2">
-                            <Badge
-                              variant={
-                                task.priority === "high"
-                                  ? "destructive"
-                                  : task.priority === "medium"
-                                  ? "default"
-                                  : "secondary"
-                              }
-                            >
-                              {task.priority}
-                            </Badge>
-                            <Badge
-                              variant={
-                                task.status === "completed"
-                                  ? "default"
-                                  : task.status === "in-progress"
-                                  ? "secondary"
-                                  : "outline"
-                              }
-                            >
-                              {task.status}
-                            </Badge>
-                          </div>
+                    {/* In Progress */}
+                    <Card className="border-l-4 border-l-blue-500 shadow-sm">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">In Progress</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-blue-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{inProgressTasks.length}</div>
+                        <p className="text-[10px] text-muted-foreground mt-1">Actively working on</p>
+                      </CardContent>
+                    </Card>
+
+                    {/* Completed */}
+                    <Card className="border-l-4 border-l-emerald-500 shadow-sm">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Completed</CardTitle>
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{completedTasks.length}</div>
+                        <p className="text-[10px] text-muted-foreground mt-1">Successfully closed</p>
+                      </CardContent>
+                    </Card>
+
+                    {/* Overdue */}
+                    <Card className="border-l-4 border-l-red-500 shadow-sm">
+                      <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+                        <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Overdue</CardTitle>
+                        <AlertTriangle className="h-4 w-4 text-red-500" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold text-red-600">{overdueTasks.length}</div>
+                        <p className="text-[10px] text-red-500/70 mt-1 font-bold">Requires urgent action</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="grid gap-6 lg:grid-cols-7">
+                    <Card className="lg:col-span-4 shadow-sm border">
+                      <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                          <CardTitle className="text-xl font-bold">Recent Assignments</CardTitle>
+                          <p className="text-sm text-muted-foreground mt-1">Your latest task invitations</p>
                         </div>
-                        <p className="text-muted-foreground mb-4">{task.description}</p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-muted-foreground">
-                            Due: {new Date(task.dueDate).toLocaleDateString()}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <Progress value={task.progress} className="w-24 h-2" />
-                            <span className="text-sm">{task.progress}%</span>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewTask(task)}
-                            className="flex items-center gap-1 bg-transparent"
-                          >
-                            <Eye className="h-4 w-4" />
-                            View
-                          </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setActiveTab("tasks")} className="text-primary hover:text-primary hover:bg-primary/5">
+                          View All
+                          <ArrowUpRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-6">
+                          {inProgressTasks.length > 0 ? (
+                            inProgressTasks.slice(0, 3).map((task) => (
+                              <div key={task.id} className="flex items-start gap-4 p-4 rounded-xl bg-muted/20 border border-transparent hover:border-primary/20 hover:bg-white transition-all duration-300">
+                                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                                  <FileText className="h-5 w-5 text-primary" />
+                                </div>
+                                <div className="flex-1 space-y-1">
+                                  <div className="flex items-center justify-between">
+                                    <h4 className="font-bold text-base">{task.title}</h4>
+                                    <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider">{task.priority}</Badge>
+                                  </div>
+                                  <p className="text-sm text-muted-foreground line-clamp-1">{task.description}</p>
+                                  <div className="pt-3">
+                                    <div className="flex items-center justify-between mb-1.5 px-0.5">
+                                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Progress</span>
+                                      <span className="text-[10px] font-bold text-primary">{task.progress}%</span>
+                                    </div>
+                                    <Progress value={task.progress} className="h-1.5 bg-muted/40" />
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-center py-10 text-muted-foreground">No pending assignments</div>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
-                  ))}
+
+                    <Card className="lg:col-span-3 shadow-sm border">
+                      <CardHeader>
+                        <CardTitle className="text-xl font-bold">Critical Deadlines</CardTitle>
+                        <p className="text-sm text-muted-foreground mt-1">Don&apos;t let these slip</p>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-5">
+                          {tasks
+                            .filter(t => t.status !== "completed")
+                            .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+                            .slice(0, 4)
+                            .map((task) => {
+                              const daysLeft = Math.ceil((new Date(task.dueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                              return (
+                                <div key={task.id} className="flex items-center gap-4 group">
+                                  <div className={cn(
+                                    "flex flex-col items-center justify-center h-12 w-12 rounded-xl shrink-0 border transition-colors",
+                                    daysLeft <= 2 ? "bg-red-50 border-red-100 text-red-600" : "bg-muted/30 border-muted/50 text-muted-foreground group-hover:border-primary/30 group-hover:bg-primary/5 group-hover:text-primary"
+                                  )}>
+                                    <span className="text-xs font-bold uppercase">{new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short' })}</span>
+                                    <span className="text-lg font-extrabold leading-none">{new Date(task.dueDate).getDate()}</span>
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-bold truncate group-hover:text-primary transition-colors">{task.title}</p>
+                                    <p className={cn(
+                                      "text-xs font-semibold uppercase tracking-wider mt-0.5",
+                                      daysLeft <= 0 ? "text-red-500 animate-pulse" : daysLeft <= 2 ? "text-orange-500" : "text-muted-foreground"
+                                    )}>
+                                      {daysLeft <= 0 ? "Overdue" : `Due in ${daysLeft} days`}
+                                    </p>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
                 </div>
               )}
-            </div>
-          )}
 
-          {activeTab === "files" && <BoxFileManagement />}
-
-          {activeTab === "notifications" && (
-            <Card>
-              <CardHeader>
-                <CardTitle>All Notifications</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      className={`p-4 rounded-lg border ${notification.type === "urgent" ? "bg-red-50 border-red-200" : "bg-muted"}`}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-medium">{notification.title}</h4>
-                          <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
-                        </div>
-                        <span className="text-xs text-muted-foreground">{notification.time}</span>
-                      </div>
-                    </div>
-                  ))}
+              {activeTab === "tasks" && (
+                <div className="animate-in fade-in slide-in-from-bottom-3 duration-500">
+                  <SharedTaskInterface
+                    user={user}
+                    viewMode="employee"
+                    title="Work Management"
+                    subtitle="Track your individual contributions and milestone progress."
+                  />
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              )}
+
+              {activeTab === "customers" && <CustomerManagement user={user} />}
+
+              {activeTab === "sales" && <SalesManagement user={user} />}
+
+              {activeTab === "financial" && <FinancialManager user={user} />}
+
+              {activeTab === "revenue_hub" && <RevenueHub user={user} />}
+
+              {activeTab === "employees" && <EmployeeManagement user={user} />}
+
+              {activeTab === "inventory" && <InventoryManager user={user} />}
+
+              {activeTab === "services" && <ServiceMarketplace user={user} />}
+
+              {activeTab === "files" && <BoxFileManagement />}
+
+              {activeTab === "profile" && (
+                <ProfileManagement
+                  user={user}
+                  onSave={handleProfileSave}
+                  showBackButton={false}
+                  inline={true}
+                />
+              )}
+          </main>
         </div>
       </div>
-
-      {/* File Viewer Dialog */}
-      {viewingFile && (
-        <Dialog open={!!viewingFile} onOpenChange={() => setViewingFile(null)}>
-          <DialogContent className="max-w-4xl max-h-[80vh]">
-            <DialogHeader>
-              <DialogTitle>{viewingFile.name}</DialogTitle>
-            </DialogHeader>
-            <FileViewer 
-              file={viewingFile} 
-              onBack={() => setViewingFile(null)}
-              onDelete={() => {
-                console.log("Delete file:", viewingFile.id)
-                setViewingFile(null)
-              }}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Detailed Customer Files Dialog */}
-      {selectedCustomer && (
-        <Dialog open={!!selectedCustomer} onOpenChange={() => setSelectedCustomer(null)}>
-          <DialogContent className="max-w-4xl max-h-[80vh]">
-            <DialogHeader>
-              <DialogTitle>{mockCustomers.find((c) => c.id === selectedCustomer)?.name} - Box File</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-              {mockFiles
-                .filter((file) => file.customerId === selectedCustomer)
-                .map((file) => (
-                  <div key={file.id} className="flex items-center gap-4 p-3 border rounded-lg">
-                    {getFileIcon(file.type)}
-                    <div className="flex-1">
-                      <p className="font-medium">{file.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {formatFileSize(file.size)} • {new Date(file.uploadedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setViewingFile(file)}>
-                        <Eye className="h-4 w-4 mr-2" />
-                        View
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Download className="h-4 w-4 mr-2" />
-                        Download
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {focusedTask && (
-        <Dialog open={!!focusedTask} onOpenChange={() => setFocusedTask(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center justify-between">
-                <span>{focusedTask.title}</span>
-                <Badge variant={focusedTask.priority === "high" ? "destructive" : "default"}>
-                  {focusedTask.priority}
-                </Badge>
-              </DialogTitle>
-            </DialogHeader>
-
-            <div className="space-y-6">
-              <div>
-                <h4 className="font-semibold mb-2">Description</h4>
-                <p className="text-muted-foreground">{focusedTask.description}</p>
-              </div>
-
-              <div>
-                <h4 className="font-semibold mb-4">Subtasks ({focusedTask.subtasks?.length || 0})</h4>
-                <div className="space-y-3">
-                  {focusedTask.subtasks?.map((subtask: any, index: number) => (
-                    <div key={subtask.id} className="p-4 border rounded-lg">
-                      <div className="flex items-start gap-3">
-                        <Checkbox
-                          checked={subtask.completed}
-                          onCheckedChange={(checked) =>
-                            handleSubtaskComplete(focusedTask.id, subtask.id, checked as boolean)
-                          }
-                        />
-                        <div className="flex-1">
-                          <h5 className="font-medium">{subtask.title}</h5>
-                          <p className="text-sm text-muted-foreground mt-1">{subtask.description}</p>
-
-                          {subtask.requiresProof && (
-                            <div className="mt-3 p-3 bg-muted rounded">
-                              <Label className="text-sm font-medium">Proof of Work Required</Label>
-                              <div className="mt-2">
-                                <Input
-                                  type="file"
-                                  multiple
-                                  className="text-sm"
-                                  onChange={(e) => {
-                                    if (e.target.files) {
-                                      setProofOfWork((prev) => ({
-                                        ...prev,
-                                        [subtask.id]: Array.from(e.target.files!),
-                                      }))
-                                    }
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          )}
-
-                          <div className="mt-3 p-3 bg-muted rounded">
-                            <Label className="text-sm font-medium">Additional Costs</Label>
-                            <div className="grid grid-cols-2 gap-2 mt-2">
-                              <Input
-                                type="number"
-                                placeholder="Amount"
-                                value={additionalCosts[subtask.id]?.amount || ""}
-                                onChange={(e) =>
-                                  handleAddCost(
-                                    subtask.id,
-                                    Number.parseFloat(e.target.value) || 0,
-                                    additionalCosts[subtask.id]?.comment || "",
-                                  )
-                                }
-                              />
-                              <Input
-                                placeholder="Comment"
-                                value={additionalCosts[subtask.id]?.comment || ""}
-                                onChange={(e) =>
-                                  handleAddCost(subtask.id, additionalCosts[subtask.id]?.amount || 0, e.target.value)
-                                }
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )) || <p className="text-muted-foreground">No subtasks defined</p>}
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center pt-4 border-t">
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-muted-foreground">Progress: {focusedTask.progress}%</span>
-                  <Progress value={focusedTask.progress} className="w-32" />
-                </div>
-                <Button onClick={() => setFocusedTask(null)}>Close</Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-    </div>
+    </TooltipProvider>
   )
 }

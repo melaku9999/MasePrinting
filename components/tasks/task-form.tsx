@@ -1,16 +1,44 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { mockCustomers, mockServices, mockUsers, type Task } from "@/lib/auth"
-import { Plus, X } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { type Task } from "@/lib/auth"
+import { customersApi, employeesApi, tasksApi } from "@/lib/api"
+import {
+  Plus,
+  Save,
+  ArrowLeft,
+  FileText,
+  User,
+  Building2,
+  Calendar,
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
+  Check
+} from "lucide-react"
+import { SubtaskEditor } from "@/components/tasks/subtask-editor"
+import { cn } from "@/lib/utils"
+
+interface Customer {
+  id?: number | string
+  customer_id?: number
+  name: string
+  email: string
+}
+
+interface Employee {
+  id?: number | string
+  employee_id?: number
+  employee_name: string
+}
 
 interface TaskFormProps {
   task?: Task
@@ -18,244 +46,287 @@ interface TaskFormProps {
   onCancel: () => void
 }
 
+interface FormData {
+  title: string
+  description: string
+  customerId: string
+  serviceId: string
+  assignedTo: string
+  status: "pending" | "in-progress" | "completed" | "cancelled"
+  priority: "low" | "medium" | "high"
+  dueDate: string
+  price: string
+}
+
 export function TaskForm({ task, onSave, onCancel }: TaskFormProps) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     title: task?.title || "",
     description: task?.description || "",
-    customerId: task?.customerId || "",
-    serviceId: task?.serviceId || "",
-    assignedTo: task?.assignedTo || "",
+    customerId: task?.customerId || (task?.customer?.id?.toString()) || "",
+    serviceId: task?.serviceId || (task?.service?.id?.toString()) || "",
+    assignedTo: task?.assignedTo || task?.assigned_to?.id?.toString() || "unassigned",
     status: task?.status || "pending",
-    priority: task?.priority || "medium",
-    dueDate: task?.dueDate || "",
+    priority: task?.priority === 3 || task?.priority === "high" ? "high" : (task?.priority === 2 || task?.priority === "medium" ? "medium" : "low"),
+    dueDate: task?.dueDate ? (task.dueDate.includes('T') ? task.dueDate.split('T')[0] : task.dueDate) : "",
+    price: task?.price?.toString() ?? task?.base_price?.toString() ?? "",
   })
 
   const [subtasks, setSubtasks] = useState(task?.subtasks || [])
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [employees, setEmployees] = useState<Employee[]>([])
+  const [loadingCustomers, setLoadingCustomers] = useState(true)
+  const [loadingEmployees, setLoadingEmployees] = useState(true)
+  const [loadingTaskDetails, setLoadingTaskDetails] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onSave({
-      ...formData,
-      id: task?.id || Date.now().toString(),
-      createdAt: task?.createdAt || new Date().toISOString().split("T")[0],
-      subtasks: subtasks, // Include subtasks in the saved task
-      progress: task?.progress || 0,
-    })
-  }
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoadingCustomers(true)
+        const cRes = await customersApi.getAll()
+        setCustomers(cRes.results || cRes || [])
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-  }
-
-  const addSubtask = () => {
-    const newSubtask = {
-      id: Date.now().toString(),
-      title: "",
-      description: "",
-      completed: false,
-      requiresProof: false,
-      additionalCost: 0,
-      costComment: "",
+        const eRes = await employeesApi.getAll()
+        const rawEmployees = eRes.results || eRes || []
+        setEmployees(rawEmployees.map((e: any) => ({
+          employee_id: e.id,
+          employee_name: e.name || e.employee_name
+        })))
+      } catch (error) {
+        console.error("Error fetching form data:", error)
+      } finally {
+        setLoadingCustomers(false)
+        setLoadingEmployees(false)
+      }
     }
-    setSubtasks([...subtasks, newSubtask])
+    fetchData()
+
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  const handleInputChange = (field: keyof FormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  const removeSubtask = (index: number) => {
-    setSubtasks(subtasks.filter((_, i) => i !== index))
-  }
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
 
-  const updateSubtask = (index: number, field: string, value: any) => {
-    const updatedSubtasks = subtasks.map((subtask, i) => (i === index ? { ...subtask, [field]: value } : subtask))
-    setSubtasks(updatedSubtasks)
+    const priorityValue = formData.priority === "high" ? 3 : (formData.priority === "medium" ? 2 : 1)
+
+    const updatedTask: Partial<Task> = {
+      ...task,
+      title: formData.title,
+      description: formData.description,
+      customerId: formData.customerId,
+      serviceId: formData.serviceId,
+      assignedTo: formData.assignedTo === "unassigned" ? "unassigned" : formData.assignedTo,
+      status: formData.status,
+      priority: priorityValue as any,
+      dueDate: formData.dueDate,
+      price: parseFloat(formData.price) || 0,
+      subtasks: subtasks
+    }
+
+    onSave(updatedTask)
   }
 
   return (
-    <Card className="max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle>{task ? "Edit Task" : "Create New Task"}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="title">Task Title *</Label>
-            <Input
-              id="title"
-              value={formData.title}
-              onChange={(e) => handleInputChange("title", e.target.value)}
-              placeholder="Enter task title"
-              required
-            />
-          </div>
+    <div className="max-w-5xl mx-auto space-y-10 pb-20 animate-in fade-in duration-700">
+      {/* Notion-style Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-6 border-b border-slate-100">
+        <div className="space-y-2">
+          <Button variant="ghost" onClick={onCancel} className="text-slate-500 hover:text-slate-900 -ml-2 rounded-lg h-8 px-2 transition-colors">
+            <ArrowLeft className="h-4 w-4 mr-1.5" />
+            Back to workspace
+          </Button>
+          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">
+            {task ? "Edit Task" : "New Task"}
+          </h1>
+          <p className="text-slate-500 text-lg max-w-xl">
+            {task ? "Update the workflow parameters and team assignments." : "Define a new operational workflow and set its objectives."}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={onCancel} className="h-11 border-slate-200 hover:bg-slate-50 text-slate-600 px-6 rounded-lg transition-colors">
+            Discard
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={loadingTaskDetails || !formData.title || !formData.customerId || !formData.dueDate}
+            className="h-11 bg-slate-900 hover:bg-slate-800 text-white shadow-md px-8 rounded-lg font-bold transition-all active:scale-95"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            {task ? "Update Workflow" : "Launch Workflow"}
+          </Button>
+        </div>
+      </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => handleInputChange("description", e.target.value)}
-              placeholder="Enter task description"
-              rows={3}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="customerId">Customer *</Label>
-              <Select value={formData.customerId} onValueChange={(value) => handleInputChange("customerId", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select customer" />
-                </SelectTrigger>
-                <SelectContent>
-                  {mockCustomers.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="serviceId">Service</Label>
-              <Select value={formData.serviceId} onValueChange={(value) => handleInputChange("serviceId", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select service" />
-                </SelectTrigger>
-                <SelectContent>
-                  {mockServices.map((service) => (
-                    <SelectItem key={service.id} value={service.id}>
-                      {service.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="assignedTo">Assigned To *</Label>
-              <Select value={formData.assignedTo} onValueChange={(value) => handleInputChange("assignedTo", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select employee" />
-                </SelectTrigger>
-                <SelectContent>
-                  {mockUsers
-                    .filter((user) => user.role === "employee" || user.role === "admin")
-                    .map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="priority">Priority</Label>
-              <Select value={formData.priority} onValueChange={(value) => handleInputChange("priority", value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => handleInputChange("status", value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="in-progress">In Progress</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="dueDate">Due Date *</Label>
-            <Input
-              id="dueDate"
-              type="date"
-              value={formData.dueDate}
-              onChange={(e) => handleInputChange("dueDate", e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-medium">Subtasks</Label>
-              <Button type="button" onClick={addSubtask} variant="outline" size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Subtask
-              </Button>
-            </div>
-
-            {subtasks.length > 0 && (
-              <div className="space-y-3">
-                {subtasks.map((subtask, index) => (
-                  <Card key={subtask.id} className="p-4">
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-3">
-                        <div className="flex-1 space-y-2">
-                          <Input
-                            placeholder="Subtask title"
-                            value={subtask.title}
-                            onChange={(e) => updateSubtask(index, "title", e.target.value)}
-                          />
-                          <Textarea
-                            placeholder="Subtask description"
-                            value={subtask.description}
-                            onChange={(e) => updateSubtask(index, "description", e.target.value)}
-                            rows={2}
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => removeSubtask(index)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-
-                      <div className="flex items-center gap-4">
-                        <label className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={subtask.requiresProof}
-                            onChange={(e) => updateSubtask(index, "requiresProof", e.target.checked)}
-                            className="rounded"
-                          />
-                          Requires Proof of Work
-                        </label>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        <div className="lg:col-span-2 space-y-10">
+          {/* Main Form Fields */}
+          <div className="space-y-10">
+            <section className="space-y-6">
+              <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400 border-l-2 border-slate-900 pl-4">Core Definition</h3>
+              <div className="grid gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="title" className="text-xs font-black uppercase text-slate-500">Task Title <span className="text-rose-500">*</span></Label>
+                  <Input
+                    id="title"
+                    value={formData.title}
+                    onChange={e => handleInputChange("title", e.target.value)}
+                    placeholder="e.g., Q1 Financial Audit"
+                    className="h-12 border-slate-200 focus:ring-slate-900 rounded-xl bg-white shadow-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description" className="text-xs font-black uppercase text-slate-500">Detailed Context</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={e => handleInputChange("description", e.target.value)}
+                    placeholder="Describe the objectives and requirements..."
+                    className="min-h-[120px] border-slate-200 focus:ring-slate-900 rounded-xl bg-white shadow-sm resize-none"
+                  />
+                </div>
               </div>
-            )}
+            </section>
+
+            <section className="space-y-6">
+              <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400 border-l-2 border-slate-900 pl-4">Logistics & Assignment</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-xs font-black uppercase text-slate-500">Customer Entity <span className="text-rose-500">*</span></Label>
+                  <Select value={formData.customerId} onValueChange={v => handleInputChange("customerId", v)}>
+                    <SelectTrigger className="h-12 border-slate-200 rounded-xl bg-white shadow-sm">
+                      <SelectValue placeholder="Select entity" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map(c => {
+                        const cid = c.customer_id || c.id
+                        if (!cid) return null
+                        return (
+                          <SelectItem key={cid} value={cid.toString()}>{c.name}</SelectItem>
+                        )
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-black uppercase text-slate-500">Assign To Employee</Label>
+                  <Select value={formData.assignedTo} onValueChange={v => handleInputChange("assignedTo", v)}>
+                    <SelectTrigger className="h-12 border-slate-200 rounded-xl bg-white shadow-sm">
+                      <SelectValue placeholder="Unassigned" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                      {employees.map(e => {
+                        const eid = e.employee_id || e.id
+                        if (!eid) return null
+                        return (
+                          <SelectItem key={eid} value={eid.toString()}>{e.employee_name}</SelectItem>
+                        )
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-black uppercase text-slate-500">Deadline <span className="text-rose-500">*</span></Label>
+                  <Input
+                    type="date"
+                    value={formData.dueDate}
+                    onChange={e => handleInputChange("dueDate", e.target.value)}
+                    className="h-12 border-slate-200 rounded-xl bg-white shadow-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-black uppercase text-slate-500">Priority Level</Label>
+                  <Select value={formData.priority} onValueChange={(v: any) => handleInputChange("priority", v)}>
+                    <SelectTrigger className="h-12 border-slate-200 rounded-xl bg-white shadow-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low Priority</SelectItem>
+                      <SelectItem value="medium">Medium Priority</SelectItem>
+                      <SelectItem value="high">High Priority</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-black uppercase text-slate-500">Task Base Price ($)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={formData.price}
+                    onChange={e => handleInputChange("price", e.target.value)}
+                    placeholder="0.00"
+                    className="h-12 border-slate-200 rounded-xl bg-white shadow-sm"
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section className="space-y-6">
+              <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400 border-l-2 border-slate-900 pl-4">Quality Steps</h3>
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <SubtaskEditor subtasks={subtasks} onChange={setSubtasks} />
+              </div>
+            </section>
+          </div>
+        </div>
+
+        {/* Info Sidebar */}
+        <div className="space-y-8">
+          <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 space-y-6">
+            <h4 className="text-xs font-black uppercase tracking-widest text-slate-500">Guidelines</h4>
+            <ul className="space-y-4">
+              <li className="flex gap-3">
+                <div className="h-5 w-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0 mt-0.5">
+                  <Check className="h-3 w-3" />
+                </div>
+                <p className="text-sm text-slate-600 leading-snug">Required fields marked with an asterisk must be finalized for launch.</p>
+              </li>
+              <li className="flex gap-3">
+                <div className="h-5 w-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0 mt-0.5">
+                  <Check className="h-3 w-3" />
+                </div>
+                <p className="text-sm text-slate-600 leading-snug">Checklist items help the assignee track granular milestones.</p>
+              </li>
+              <li className="flex gap-3">
+                <div className="h-5 w-5 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 shrink-0 mt-0.5">
+                  <AlertCircle className="h-3 w-3" />
+                </div>
+                <p className="text-sm text-slate-500 leading-snug italic">Launch without assignment to keep as a general pending task.</p>
+              </li>
+            </ul>
           </div>
 
-          <div className="flex items-center gap-4 pt-4">
-            <Button type="submit" className="flex-1">
-              {task ? "Update Task" : "Create Task"}
-            </Button>
-            <Button type="button" variant="outline" onClick={onCancel} className="flex-1 bg-transparent">
-              Cancel
-            </Button>
+          <div className="bg-slate-900 rounded-2xl p-6 text-white shadow-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center">
+                <FileText className="h-4 w-4" />
+              </div>
+              <h4 className="font-bold text-sm">Validation Overview</h4>
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500">Required Detail</span>
+                <span className={cn("font-bold text-[10px] px-2 py-0.5 rounded", formData.title && formData.customerId && formData.dueDate ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400")}>
+                  {formData.title && formData.customerId && formData.dueDate ? "READY" : "INCOMPLETE"}
+                </span>
+              </div>
+              <Separator className="bg-slate-800" />
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500">Milestone Count</span>
+                <span className="font-bold">{subtasks.length} items</span>
+              </div>
+            </div>
           </div>
-        </form>
-      </CardContent>
-    </Card>
+        </div>
+      </div>
+    </div>
   )
 }
