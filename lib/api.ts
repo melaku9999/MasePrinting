@@ -1,7 +1,7 @@
 // Centralized API service layer for all backend endpoints
 
 // Base API configuration — configurable via env for Docker
-export const BACKEND_URL = 'http://api.maseprinting.com'
+export const BACKEND_URL = 'https://api.maseprinting.com'
 const API_BASE_URL = `${BACKEND_URL}/api`
 
 /**
@@ -28,7 +28,7 @@ async function apiRequest<T>(
   }
 
   // Get token from localStorage
-  const token = typeof window !== 'undefined' ? localStorage.getItem('cm_token') : null
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
 
   const isFormData = options.body instanceof FormData
   const headers: Record<string, string> = {
@@ -56,8 +56,8 @@ async function apiRequest<T>(
     if (!response.ok) {
       if (response.status === 401 && typeof window !== 'undefined' && !url.includes('/users/token')) {
         // Token expired or invalid - clear context and force re-authentication
-        localStorage.removeItem('cm_token')
-        localStorage.removeItem('cm_refresh_token')
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
         localStorage.removeItem('cm_user')
         
         // Terminate the session and redirect to the login portal

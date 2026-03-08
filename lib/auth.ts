@@ -26,8 +26,8 @@ if (typeof window !== "undefined") {
       console.error("Failed to parse saved user")
     }
   }
-  authToken = localStorage.getItem("cm_token")
-  refreshToken = localStorage.getItem("cm_refresh_token")
+  authToken = localStorage.getItem("access_token")
+  refreshToken = localStorage.getItem("refresh_token")
 }
 
 export interface Customer {
@@ -653,8 +653,8 @@ export const login = async (email: string, password: string): Promise<User | nul
 
     if (typeof window !== "undefined") {
       localStorage.setItem("cm_user", JSON.stringify(mappedUser))
-      localStorage.setItem("cm_token", response.access)
-      localStorage.setItem("cm_refresh_token", response.refresh)
+      localStorage.setItem("access_token", response.access)
+      localStorage.setItem("refresh_token", response.refresh)
     }
 
     console.log('Login successful, setting current user:', mappedUser);
@@ -676,8 +676,8 @@ export const logout = async (): Promise<boolean> => {
     refreshToken = null
     if (typeof window !== "undefined") {
       localStorage.removeItem("cm_user")
-      localStorage.removeItem("cm_token")
-      localStorage.removeItem("cm_refresh_token")
+      localStorage.removeItem("access_token")
+      localStorage.removeItem("refresh_token")
     }
     return true
   } catch (error) {
@@ -702,8 +702,8 @@ export const refreshAuthToken = async (): Promise<boolean> => {
       refreshToken = response.refresh
 
       if (typeof window !== 'undefined') {
-        localStorage.setItem('cm_token', response.access)
-        localStorage.setItem('cm_refresh_token', response.refresh)
+        localStorage.setItem('access_token', response.access)
+        localStorage.setItem('refresh_token', response.refresh)
       }
       return true
     }
