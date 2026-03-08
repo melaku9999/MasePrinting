@@ -37,8 +37,8 @@ import { branchesApi } from "@/lib/api"
 import type { User as AuthUser } from "@/lib/auth"
 
 interface EmployeeFormProps {
-  employee?: AuthUser
-  onSave: (employee: Partial<AuthUser>) => void
+  employee?: any
+  onSave: (employee: any) => void
   onCancel: () => void
 }
 
@@ -67,19 +67,19 @@ export function EmployeeForm({ employee, onSave, onCancel }: EmployeeFormProps) 
   const [formData, setFormData] = useState({
     name: employee?.name || "",
     email: employee?.email || "",
-    phone: "",
-    address: "",
-    status: employee?.role === "admin" ? "admin" : "employee",
-    branch: employee?.branch_id?.toString() || "none", // Added branch field
-    // Additional profile fields
-    bio: "",
-    department: "",
-    job_title: "", // Changed from jobTitle to job_title
-    employeeId: "",
-    start_date: "", // Changed from startDate to start_date
-    emergency_contact_person: "", // Changed from emergencyContact to emergency_contact_person
-    emergency_contact_person_phone: "", // Changed to match backend exactly
-    monthly_salary: 0, // Changed from salary to monthly_salary
+    phone: employee?.phone || "",
+    address: employee?.address || "",
+    role: employee?.role || "employee",
+    status: employee?.status || "active",
+    branch: employee?.branch?.toString() || employee?.branch_id?.toString() || "none",
+    bio: employee?.bio || "",
+    department: employee?.department || "",
+    job_title: employee?.job_title || "",
+    employeeId: employee?.id || "",
+    start_date: employee?.start_date || "",
+    emergency_contact_person: employee?.emergency_contact_person || "",
+    emergency_contact_person_phone: employee?.emergency_contact_person_phone || "",
+    monthly_salary: employee?.monthly_salary ? parseFloat(employee.monthly_salary) : 0,
   })
 
   // Password form state
@@ -106,7 +106,6 @@ export function EmployeeForm({ employee, onSave, onCancel }: EmployeeFormProps) 
         password: passwordData.password 
       } : {}),
       id: employee?.id || undefined,
-      role: formData.status as "admin" | "employee" | "customer",
     })
   }
 
@@ -307,7 +306,7 @@ export function EmployeeForm({ employee, onSave, onCancel }: EmployeeFormProps) 
                         <Shield className="h-4 w-4 text-blue-600" />
                         Role
                       </Label>
-                      <Select value={formData.status} onValueChange={(value) => handleInputChange("status", value)}>
+                      <Select value={formData.role} onValueChange={(value) => handleInputChange("role", value)}>
                         <SelectTrigger className="h-12 border-2 focus:border-blue-400 rounded-lg">
                           <SelectValue />
                         </SelectTrigger>
@@ -484,10 +483,9 @@ export function EmployeeForm({ employee, onSave, onCancel }: EmployeeFormProps) 
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="employee">Active</SelectItem>
-                          <SelectItem value="admin">Administrator</SelectItem>
+                          <SelectItem value="active">Active</SelectItem>
                           <SelectItem value="inactive">Inactive</SelectItem>
-                          <SelectItem value="on-leave">On Leave</SelectItem>
+                          <SelectItem value="on_leave">On Leave</SelectItem>
                           <SelectItem value="terminated">Terminated</SelectItem>
                         </SelectContent>
                       </Select>

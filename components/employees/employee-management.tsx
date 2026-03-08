@@ -133,7 +133,7 @@ export function EmployeeManagement({ user }: EmployeeManagementProps) {
     return (
       <div className="space-y-6">
         <EmployeeForm
-          employee={selectedEmployee || undefined}
+          employee={selectedEmployeeData || undefined}
           onSave={async (data) => {
             try {
               if (viewMode === "edit" && selectedEmployeeData) {
