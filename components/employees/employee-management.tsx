@@ -119,6 +119,7 @@ export function EmployeeManagement({ user }: EmployeeManagementProps) {
       name: employee.name,
       email: employee.email,
       role: "employee",
+      branch_id: employee.branch,
     }
     setSelectedEmployee(authUser)
     setSelectedEmployeeData(employee)

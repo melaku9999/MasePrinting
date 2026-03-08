@@ -70,7 +70,7 @@ export function EmployeeForm({ employee, onSave, onCancel }: EmployeeFormProps) 
     phone: "",
     address: "",
     status: employee?.role === "admin" ? "admin" : "employee",
-    branch: "", // Added branch field
+    branch: employee?.branch_id?.toString() || "none", // Added branch field
     // Additional profile fields
     bio: "",
     department: "",

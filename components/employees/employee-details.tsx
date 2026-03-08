@@ -179,7 +179,8 @@ export function EmployeeDetails({ employee, onBack, initialViewMode, adminUser }
     name: currentEmployee.name,
     email: currentEmployee.email,
     role: "employee",
-    avatar: "/placeholder.svg"
+    avatar: "/placeholder.svg",
+    branch_id: currentEmployee.branch
   }
 
   return (
