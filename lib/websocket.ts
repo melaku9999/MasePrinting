@@ -15,9 +15,7 @@ type OnUpdate = (data: TaskUpdateMessage) => void
 
 export function connectTaskSocket(onUpdate: OnUpdate) {
   // Derive WebSocket URL from BACKEND_URL
-  // If BACKEND_URL is http://localhost:8001, we want ws://127.0.0.1:8001/ws/tasks/
-  // Using 127.0.0.1 is often more stable on Windows than 'localhost'
-  const wsBase = BACKEND_URL.replace('http', 'ws').replace('localhost', '127.0.0.1')
+  const wsBase = BACKEND_URL.replace(/^http/, 'ws')
   const wsUrl = `${wsBase}/ws/tasks/`
   
   console.log(`Attempting WebSocket connection to: ${wsUrl}`)
