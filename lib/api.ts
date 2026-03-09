@@ -135,6 +135,12 @@ export const usersApi = {
 
   getProfile: () =>
     apiRequest<any>('/users/me/'),
+
+  changePassword: (data: any) =>
+    apiRequest<any>('/users/change-password/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 }
 
 // Customers API
@@ -490,7 +496,7 @@ export const documentsApi = {
       body: formData,
     }),
   download: async (id: number | string): Promise<Blob> => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('cm_token') : null
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
     const url = `${API_BASE_URL}/document/download/${id}/`
     const res = await fetch(url, {
       method: 'GET',

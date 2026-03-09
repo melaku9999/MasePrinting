@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, DollarSign, Users, AlertTriangle, CheckCircle2, Clock, Star, TrendingUp, Loader2, AlertCircle, ShoppingCart, Building2, LayoutDashboard, ClipboardList, ShieldCheck, Lock } from "lucide-react"
-import { employeesApi, tasksApi, salesApi, authApi } from "@/lib/api"
+import { employeesApi, tasksApi, salesApi, authApi, usersApi } from "@/lib/api"
 import { EmployeeTaskManagement } from "./employee-task-management"
 import type { User as AuthUser } from "@/lib/auth"
 import { cn } from "@/lib/utils"
@@ -379,46 +379,19 @@ export function EmployeeDetails({ employee, onBack, initialViewMode, adminUser }
                       setPasswordError(null)
                       setPasswordSuccess(false)
                       
-                      const token = localStorage.getItem("cm_token")
-                      if (!token) throw new Error("Not authenticated")
-
                       if (isAdminSession) {
                         // Admin Reset Logic
                         if (!currentEmployee.user_id) throw new Error("Synchronization Error: Root user ID not found")
                         
-                        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api'}/users/users/${currentEmployee.user_id}/update/`, {
-                          method: 'PUT',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                          },
-                          body: JSON.stringify({
-                            password: newPassword
-                          })
+                        await usersApi.update(currentEmployee.user_id.toString(), {
+                          password: newPassword
                         })
-
-                        if (!response.ok) {
-                          const errData = await response.json()
-                          throw new Error(errData.detail || "Administrative override failed")
-                        }
                       } else {
                         // Self-Change Logic
-                        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001/api'}/users/change-password/`, {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                          },
-                          body: JSON.stringify({
-                            old_password: oldPassword,
-                            new_password: newPassword
-                          })
+                        await usersApi.changePassword({
+                          old_password: oldPassword,
+                          new_password: newPassword
                         })
-
-                        if (!response.ok) {
-                          const errData = await response.json()
-                          throw new Error(errData.error || "Failed to update password")
-                        }
                       }
 
                       setPasswordSuccess(true)
@@ -426,7 +399,7 @@ export function EmployeeDetails({ employee, onBack, initialViewMode, adminUser }
                       setNewPassword("")
                       setConfirmPassword("")
                     } catch (err: any) {
-                      setPasswordError(err.message)
+                      setPasswordError(err.message || "Failed to process change")
                     } finally {
                       setPasswordLoading(false)
                     }
