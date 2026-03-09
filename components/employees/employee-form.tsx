@@ -67,6 +67,7 @@ export function EmployeeForm({ employee, onSave, onCancel }: EmployeeFormProps) 
   const [formData, setFormData] = useState({
     name: employee?.name || "",
     email: employee?.email || "",
+    username: employee?.username || "",
     phone: employee?.phone || "",
     address: employee?.address || "",
     role: employee?.role || "employee",
@@ -91,18 +92,25 @@ export function EmployeeForm({ employee, onSave, onCancel }: EmployeeFormProps) 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!employee && !formData.username) {
+      alert("Username is required")
+      return
+    }
+
     if (!employee && passwordData.password !== passwordData.confirmPassword) {
       alert("Passwords don't match")
       return
     }
+    
     if (!employee && passwordData.password.length < 8) {
       alert("Password must be at least 8 characters long")
       return
     }
+    
     onSave({
       ...formData,
       ...(!employee ? { 
-        username: passwordData.username, 
         password: passwordData.password 
       } : {}),
       id: employee?.id || undefined,
@@ -252,6 +260,23 @@ export function EmployeeForm({ employee, onSave, onCancel }: EmployeeFormProps) 
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6 p-6">
+                  <div className="space-y-3">
+                    <Label htmlFor="username" className="text-base font-semibold flex items-center gap-2">
+                      <UserCheck className="h-4 w-4 text-blue-600" />
+                      Username *
+                    </Label>
+                    <Input
+                      id="username"
+                      value={formData.username}
+                      onChange={(e) => handleInputChange("username", e.target.value)}
+                      placeholder="Enter unique username"
+                      className="h-12 border-2 focus:border-blue-400 rounded-lg"
+                      required
+                      disabled={!!employee}
+                    />
+                    {employee && <p className="text-xs text-muted-foreground">Username cannot be changed after onboarding.</p>}
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
                     <div className="space-y-3">
                       <Label htmlFor="name" className="text-base font-semibold flex items-center gap-2">
@@ -531,21 +556,23 @@ export function EmployeeForm({ employee, onSave, onCancel }: EmployeeFormProps) 
                   </CardHeader>
                   <CardContent className="space-y-6 p-6">
                     <div className="space-y-6">
-                      {/* Username Field */}
-                      <div className="space-y-3">
-                        <Label htmlFor="username" className="text-base font-semibold flex items-center gap-2">
-                          <User className="h-4 w-4 text-blue-600" />
-                          Username *
-                        </Label>
-                        <Input
-                          id="username"
-                          value={passwordData.username}
-                          onChange={(e) => handlePasswordChange("username", e.target.value)}
-                          placeholder="Enter username"
-                          className="h-12 border-2 focus:border-blue-400 rounded-lg"
-                          required
-                        />
-                      </div>
+                      {/* The username is now in the Personal Info tab or can be set here if not set elsewhere */}
+                      {!formData.username && (
+                        <div className="space-y-3">
+                          <Label htmlFor="security-username" className="text-base font-semibold flex items-center gap-2">
+                            <User className="h-4 w-4 text-blue-600" />
+                            Username *
+                          </Label>
+                          <Input
+                            id="security-username"
+                            value={formData.username}
+                            onChange={(e) => handleInputChange("username", e.target.value)}
+                            placeholder="Enter username"
+                            className="h-12 border-2 focus:border-blue-400 rounded-lg"
+                            required
+                          />
+                        </div>
+                      )}
 
                       <div className="space-y-3">
                         <Label htmlFor="password" className="text-base font-semibold flex items-center gap-2">
