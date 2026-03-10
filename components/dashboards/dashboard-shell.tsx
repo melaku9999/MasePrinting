@@ -68,7 +68,7 @@ export function DashboardShell({ user, onLogout, children }: DashboardShellProps
   }
 
   const sidebarContent = (
-    <div className="flex flex-col h-full bg-card">
+    <div className="flex flex-col h-full bg-card min-h-0 overflow-hidden">
       {/* Brand header */}
       <div className="flex items-center gap-3 px-4 h-16 border-b border-border/60 shrink-0">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm shrink-0">
@@ -93,7 +93,7 @@ export function DashboardShell({ user, onLogout, children }: DashboardShellProps
       </div>
 
       {/* Navigation */}
-      <ScrollArea className="flex-1 py-2">
+      <ScrollArea className="flex-1 py-2 min-h-0">
         <nav className="px-2 space-y-4">
           {navigationGroups.map((group) => (
             <div key={group.label}>
@@ -180,12 +180,12 @@ export function DashboardShell({ user, onLogout, children }: DashboardShellProps
 
   return (
     <TooltipProvider delayDuration={0}>
-      <div className="min-h-screen bg-background flex overflow-hidden">
+      <div className="h-screen bg-background flex overflow-hidden">
         {/* Desktop Sidebar */}
         {!isMobile && (
           <aside
             className={cn(
-              "bg-card border-r border-border/60 transition-all duration-300 flex flex-col h-screen sticky top-0 shadow-sm shrink-0",
+              "bg-card border-r border-border/60 transition-all duration-300 flex flex-col h-full shadow-sm shrink-0",
               sidebarCollapsed ? "w-[60px]" : "w-[250px]"
             )}
           >
@@ -194,7 +194,7 @@ export function DashboardShell({ user, onLogout, children }: DashboardShellProps
         )}
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col h-screen overflow-hidden">
+        <div className="flex-1 flex flex-col h-full overflow-hidden">
           {/* Header */}
           <header className="bg-card border-b border-border/60 h-16 sticky top-0 z-40 shadow-sm shrink-0">
             <div className="flex items-center justify-between h-full px-4 lg:px-6">
