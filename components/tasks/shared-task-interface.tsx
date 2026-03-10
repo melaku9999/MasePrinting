@@ -259,6 +259,7 @@ export function SharedTaskInterface({
           allowSubtaskCreation={user.role === "admin"}
           onTaskComplete={handleTaskComplete}
           showTaskActions={user.role === "admin"}
+          showPrice={viewMode === "admin"}
         />
       </div>
     )

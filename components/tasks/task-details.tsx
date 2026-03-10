@@ -39,6 +39,7 @@ interface TaskDetailsProps {
   allowSubtaskCreation?: boolean
   onTaskComplete?: (taskId: string) => void
   showTaskActions?: boolean
+  showPrice?: boolean
 }
 
 export function TaskDetails({
@@ -47,7 +48,8 @@ export function TaskDetails({
   onBack,
   allowSubtaskCreation = false,
   onTaskComplete,
-  showTaskActions = true
+  showTaskActions = true,
+  showPrice = true
 }: TaskDetailsProps) {
   const [detailedTask, setDetailedTask] = useState<Task | null>(null)
   const [loading, setLoading] = useState(true)
@@ -432,12 +434,14 @@ export function TaskDetails({
                   <span className="font-semibold text-sm truncate">{currentTask.assigned_to?.name || "Unassigned"}</span>
                 </div>
               </div>
-              <div className="space-y-1">
-                <p className="text-[10px] uppercase font-black text-slate-400 tracking-tighter">Total Base Price</p>
-                <div className="flex items-center gap-2 text-emerald-600 font-bold">
-                  <span className="text-sm tracking-tight">${currentTask.price || currentTask.base_price || "0.00"}</span>
+              {showPrice && (
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase font-black text-slate-400 tracking-tighter">Total Base Price</p>
+                  <div className="flex items-center gap-2 text-emerald-600 font-bold">
+                    <span className="text-sm tracking-tight">${currentTask.price || currentTask.base_price || "0.00"}</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -515,34 +519,38 @@ export function TaskDetails({
                                   </div>
                                 )}
                                 
-                                <div className={cn(
-                                  "flex items-center gap-2 bg-slate-50/50 p-1 px-2 rounded-lg border border-slate-100 group/input focus-within:border-slate-300 transition-all",
-                                  !allowSubtaskCreation && "opacity-60 cursor-not-allowed"
-                                )}>
-                                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Cost $</span>
-                                  <input 
-                                    type="number" 
-                                    value={st.additionalCost?.amount || 0}
-                                    onChange={(e) => handleSubtaskMetadataChange(st.id, 'amount', e.target.value)}
-                                    className="w-16 bg-transparent border-none text-xs font-bold text-slate-700 focus:ring-0 p-0 h-6 disabled:cursor-not-allowed"
-                                    placeholder="0.00"
-                                    disabled={!allowSubtaskCreation}
-                                  />
-                                </div>
-                                
-                                <div className={cn(
-                                  "flex-1 min-w-[200px] bg-slate-50/50 p-1 px-2 rounded-lg border border-slate-100 group/input focus-within:border-slate-300 transition-all",
-                                  !allowSubtaskCreation && "opacity-60 cursor-not-allowed"
-                                )}>
-                                  <input 
-                                    type="text" 
-                                    value={st.additionalCost?.comment || ""}
-                                    onChange={(e) => handleSubtaskMetadataChange(st.id, 'comment', e.target.value)}
-                                    className="w-full bg-transparent border-none text-xs text-slate-600 focus:ring-0 p-0 h-6 italic disabled:cursor-not-allowed"
-                                    placeholder="Reason for expense (e.g. Courier fee)"
-                                    disabled={!allowSubtaskCreation}
-                                  />
-                                </div>
+                                {showPrice && (
+                                  <>
+                                    <div className={cn(
+                                      "flex items-center gap-2 bg-slate-50/50 p-1 px-2 rounded-lg border border-slate-100 group/input focus-within:border-slate-300 transition-all",
+                                      !allowSubtaskCreation && "opacity-60 cursor-not-allowed"
+                                    )}>
+                                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Cost $</span>
+                                      <input 
+                                        type="number" 
+                                        value={st.additionalCost?.amount || 0}
+                                        onChange={(e) => handleSubtaskMetadataChange(st.id, 'amount', e.target.value)}
+                                        className="w-16 bg-transparent border-none text-xs font-bold text-slate-700 focus:ring-0 p-0 h-6 disabled:cursor-not-allowed"
+                                        placeholder="0.00"
+                                        disabled={!allowSubtaskCreation}
+                                      />
+                                    </div>
+                                    
+                                    <div className={cn(
+                                      "flex-1 min-w-[200px] bg-slate-50/50 p-1 px-2 rounded-lg border border-slate-100 group/input focus-within:border-slate-300 transition-all",
+                                      !allowSubtaskCreation && "opacity-60 cursor-not-allowed"
+                                    )}>
+                                      <input 
+                                        type="text" 
+                                        value={st.additionalCost?.comment || ""}
+                                        onChange={(e) => handleSubtaskMetadataChange(st.id, 'comment', e.target.value)}
+                                        className="w-full bg-transparent border-none text-xs text-slate-600 focus:ring-0 p-0 h-6 italic disabled:cursor-not-allowed"
+                                        placeholder="Reason for expense (e.g. Courier fee)"
+                                        disabled={!allowSubtaskCreation}
+                                      />
+                                    </div>
+                                  </>
+                                )}
                               </div>
                             </div>
                           </div>
