@@ -67,6 +67,7 @@ export function CustomerForm({ customer, onSave, onCancel }: CustomerFormProps) 
     status: customer?.status || "active",
     prepaymentBalance: customer?.prepaymentBalance || 0,
     website: customer?.website || "",
+    username: customer?.username || "",
   })
 
   // Password form state
@@ -189,6 +190,20 @@ export function CustomerForm({ customer, onSave, onCancel }: CustomerFormProps) 
               <section className="space-y-8">
                 <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400 border-l-2 border-slate-900 pl-4">Identification</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                  {customer && (
+                    <div className="space-y-3">
+                      <Label htmlFor="username" className="text-xs font-black uppercase text-slate-500 tracking-wider">Access Identifier (Username)</Label>
+                      <div className="relative">
+                        <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <Input
+                          id="username"
+                          value={formData.username}
+                          readOnly
+                          className="h-12 pl-12 rounded-xl border-slate-200 bg-slate-50 text-slate-500 font-bold cursor-not-allowed"
+                        />
+                      </div>
+                    </div>
+                  )}
                   <div className="space-y-3">
                     <Label htmlFor="name" className="text-xs font-black uppercase text-slate-500 tracking-wider">Entity Name *</Label>
                     <Input

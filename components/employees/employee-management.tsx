@@ -19,6 +19,7 @@ import { toast } from "sonner"
 
 interface Employee {
   id: number
+  username?: string
   name: string
   email: string
   phone: string
@@ -116,6 +117,7 @@ export function EmployeeManagement({ user }: EmployeeManagementProps) {
   const handleAction = (mode: ViewMode, employee: Employee, subMode: "details" | "sales" | "tasks" = "details") => {
     const authUser: AuthUser = {
       id: employee.id.toString(),
+      username: employee.username || employee.email.split('@')[0],
       name: employee.name,
       email: employee.email,
       role: "employee",

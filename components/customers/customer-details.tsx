@@ -99,6 +99,7 @@ export function CustomerDetails({ customer, onEdit, onBack, user }: CustomerDeta
             prepaymentBalance: parseFloat(response.balance),
             paymentHistory: response.paymentHistory || [],
             boxFiles: response.boxFiles || [],
+            username: response.username,
           }
           setCustomerDetails(detailedCustomer)
           console.log("Transformed customer details:", detailedCustomer)
@@ -150,6 +151,11 @@ export function CustomerDetails({ customer, onEdit, onBack, user }: CustomerDeta
             <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">
               {displayCustomer.name}
             </h1>
+            {displayCustomer.username && (
+              <span className="text-xl font-bold text-slate-400 bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">
+                @{displayCustomer.username}
+              </span>
+            )}
             <Badge className={cn(
               "font-black text-[10px] px-2.5 py-1 rounded-full uppercase tracking-widest",
               displayCustomer.status === "active" ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-100" : "bg-slate-100 text-slate-500 hover:bg-slate-100"

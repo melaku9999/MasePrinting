@@ -33,6 +33,7 @@ import {
   Briefcase,
   DollarSign
 } from "lucide-react"
+import { cn } from "@/lib/utils"
 import { branchesApi } from "@/lib/api"
 import type { User as AuthUser } from "@/lib/auth"
 
@@ -193,7 +194,9 @@ export function EmployeeForm({ employee, onSave, onCancel }: EmployeeFormProps) 
               </div>
               <div className="space-y-2">
                 <h3 className="font-bold text-xl text-card-foreground">{formData.name || "New Employee"}</h3>
-                <p className="text-sm text-muted-foreground">@{formData.username || "username"}</p>
+                <p className="text-sm text-muted-foreground">
+                  {formData.username ? `@${formData.username}` : (formData.email ? `@${formData.email.split('@')[0]}` : "@username")}
+                </p>
                 <p className="text-xs text-muted-foreground">{formData.email || "employee@company.com"}</p>
                 <Badge variant="outline" className="text-sm px-3 py-1 bg-blue-50 text-blue-700 border-blue-200">
                   {formData.role.charAt(0).toUpperCase() + formData.role.slice(1)}
@@ -271,11 +274,14 @@ export function EmployeeForm({ employee, onSave, onCancel }: EmployeeFormProps) 
                       value={formData.username}
                       onChange={(e) => handleInputChange("username", e.target.value)}
                       placeholder="Enter unique username"
-                      className="h-12 border-2 focus:border-blue-400 rounded-lg"
+                      className={cn(
+                        "h-12 border-2 focus:border-blue-400 rounded-lg",
+                        employee && "bg-blue-50/50 border-blue-100 text-blue-800/60 cursor-not-allowed"
+                      )}
                       required
-                      disabled={!!employee}
+                      readOnly={!!employee}
                     />
-                    {employee && <p className="text-xs text-muted-foreground">Username cannot be changed after onboarding.</p>}
+                    {employee && <p className="text-xs text-muted-foreground font-medium">Username is fixed in registry for existing personnel.</p>}
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
