@@ -50,7 +50,7 @@ export function RevenueHub({ user }: RevenueHubProps) {
     expenses: []
   })
   const [loading, setLoading] = useState(true)
-  const [timeframe, setTimeframe] = useState<"daily" | "weekly" | "monthly">("monthly")
+  const [timeframe, setTimeframe] = useState<"daily" | "weekly" | "monthly">("daily")
   const [branches, setBranches] = useState<any[]>([])
   const [employees, setEmployees] = useState<any[]>([])
   const [customers, setCustomers] = useState<any[]>([])
@@ -366,7 +366,7 @@ export function RevenueHub({ user }: RevenueHubProps) {
         </Card>
       </div>
 
-      <Tabs defaultValue="monthly" className="w-full" onValueChange={(v) => setTimeframe(v as any)}>
+      <Tabs defaultValue="daily" className="w-full" onValueChange={(v) => setTimeframe(v as any)}>
         <TabsList className="grid w-full max-w-[400px] grid-cols-3 bg-muted/50 p-1">
           <TabsTrigger value="daily">Daily</TabsTrigger>
           <TabsTrigger value="weekly">Weekly</TabsTrigger>

@@ -320,6 +320,7 @@ export function SalesManagement({ user }: SalesManagementProps) {
                       <TableRow className="hover:bg-transparent border-slate-100">
                         <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Customer</TableHead>
                         {isAdmin && <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Employee</TableHead>}
+                        <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Items</TableHead>
                         <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Amount</TableHead>
                         <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Date</TableHead>
                         <TableHead className="text-right text-[10px] font-black uppercase tracking-widest text-slate-400">Action</TableHead>
@@ -336,6 +337,16 @@ export function SalesManagement({ user }: SalesManagementProps) {
                           <TableRow key={sale.id} className="group hover:bg-slate-50 transition-colors border-slate-50">
                             <TableCell className="font-bold text-slate-900">{sale.customer_name}</TableCell>
                             {isAdmin && <TableCell className="text-xs font-semibold text-slate-500">{sale.employee_name}</TableCell>}
+                            <TableCell>
+                              <div className="flex flex-col gap-0.5 max-w-[200px]">
+                                {sale.items?.map((item: any, idx: number) => (
+                                  <span key={idx} className="text-[10px] font-medium text-slate-600 truncate">
+                                    {item.quantity}x {item.product_name}
+                                  </span>
+                                ))}
+                                {(!sale.items || sale.items.length === 0) && <span className="text-[10px] text-slate-400 italic">No item details</span>}
+                              </div>
+                            </TableCell>
                             <TableCell className="font-black text-slate-900 font-mono">${parseFloat(sale.total_amount).toFixed(2)}</TableCell>
                             <TableCell className="text-xs font-bold text-slate-400">{new Date(sale.timestamp).toLocaleDateString()}</TableCell>
                             <TableCell className="text-right">
