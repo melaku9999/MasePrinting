@@ -241,7 +241,7 @@ export function ServiceAssignmentForm({ service, assignment, onSave, onCancel }:
                         <SelectItem value="unassigned" className="font-bold text-slate-400">Unassigned</SelectItem>
                         {employees.map((emp) => (
                           <SelectItem key={emp.employee_id} value={emp.employee_id.toString()} className="font-bold">
-                            {emp.name}
+                            {emp.first_name} {emp.last_name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -301,7 +301,7 @@ export function ServiceAssignmentForm({ service, assignment, onSave, onCancel }:
                   <p className="text-xs font-bold truncate">
                     {formData.assignedTo === "unassigned" || !formData.assignedTo 
                       ? "Unassigned" 
-                      : employees.find(e => e.employee_id.toString() === formData.assignedTo)?.name || "Unknown"}
+                      : (() => { const e = employees.find(e => e.employee_id.toString() === formData.assignedTo); return e ? `${e.first_name} ${e.last_name}` : "Unknown"; })()}
                   </p>
                 </div>
               </div>
