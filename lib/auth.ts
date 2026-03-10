@@ -2,6 +2,7 @@ import { authApi } from "./api"
 
 export interface User {
   id: string
+  username: string
   email: string
   name: string
   role: "admin" | "employee" | "customer"
@@ -196,9 +197,9 @@ export interface Reminder {
 
 // Mock data
 export const mockUsers: User[] = [
-  { id: "1", email: "admin@company.com", name: "Admin User", role: "admin" },
-  { id: "2", email: "employee@company.com", name: "John Employee", role: "employee" },
-  { id: "3", email: "customer@example.com", name: "Jane Customer", role: "customer" },
+  { id: "1", username: "admin", email: "admin@company.com", name: "Admin User", role: "admin" },
+  { id: "2", username: "employee", email: "employee@company.com", name: "John Employee", role: "employee" },
+  { id: "3", username: "customer", email: "customer@example.com", name: "Jane Customer", role: "customer" },
 ]
 
 export const mockCustomers: Customer[] = [
@@ -638,6 +639,7 @@ export const login = async (email: string, password: string): Promise<User | nul
     // Map backend user to frontend User interface
     const mappedUser: User = {
       id: response.user.id.toString(),
+      username: response.user.username,
       email: response.user.email,
       name: response.user.username, // Using username as name if name isn't provided
       role: response.user.role as "admin" | "employee" | "customer",
@@ -720,6 +722,7 @@ export const checkAuth = async (): Promise<User | null> => {
     const response = await authApi.getMe()
     const mappedUser: User = {
       id: response.id.toString(),
+      username: response.username,
       email: response.email,
       name: response.username,
       role: response.role,

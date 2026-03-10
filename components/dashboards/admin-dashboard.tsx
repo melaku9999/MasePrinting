@@ -397,7 +397,7 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
           {(!sidebarCollapsed || isMobile) && (
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground truncate">{user.name}</p>
-              <p className="text-[11px] text-muted-foreground truncate">Administrator</p>
+              <p className="text-[11px] text-muted-foreground truncate">@{user.username} • Administrator</p>
             </div>
           )}
         </div>
@@ -456,7 +456,7 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
                 <div>
                   <h1 className="text-lg font-semibold text-foreground leading-tight">{currentPageLabel}</h1>
                   <p className="text-[12px] text-muted-foreground hidden sm:block">
-                    {activeTab === "overview" ? "Welcome back, " + user.name : "Manage your " + currentPageLabel.toLowerCase()}
+                    {activeTab === "overview" ? "Welcome back, " + user.name + " (@" + user.username + ")" : "Manage your " + currentPageLabel.toLowerCase()}
                   </p>
                 </div>
               </div>
@@ -495,7 +495,7 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
                   <DropdownMenuContent align="end" className="w-48">
                     <div className="px-2 py-1.5">
                       <p className="text-sm font-medium">{user.name}</p>
-                      <p className="text-xs text-muted-foreground">{user.email}</p>
+                      <p className="text-xs text-muted-foreground">@{user.username} • {user.email}</p>
                     </div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem>

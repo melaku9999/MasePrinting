@@ -326,7 +326,7 @@ export function EmployeeDashboard({ user, onLogout }: EmployeeDashboardProps) {
               <div>
                 <h1 className="text-lg font-semibold text-foreground leading-tight">{currentPageLabel}</h1>
                 <p className="text-[12px] text-muted-foreground hidden sm:block">
-                  {activeTab === "overview" ? "Welcome back, " + user.name : "Manage your " + currentPageLabel.toLowerCase()}
+                  {activeTab === "overview" ? "Welcome back, " + user.name + " (@" + user.username + ")" : "Manage your " + currentPageLabel.toLowerCase()}
                 </p>
               </div>
             </div>
@@ -387,7 +387,7 @@ export function EmployeeDashboard({ user, onLogout }: EmployeeDashboardProps) {
                     </Avatar>
                     <div className="hidden md:block text-left">
                       <p className="text-sm font-semibold leading-none">{user.name}</p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider">{user.role}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5 uppercase tracking-wider">@{user.username} • {user.role}</p>
                     </div>
                   </Button>
                 </DropdownMenuTrigger>

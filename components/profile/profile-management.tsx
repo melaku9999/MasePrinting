@@ -146,6 +146,7 @@ export function ProfileManagement({ user, onBack, onSave, showBackButton = true,
               </Avatar>
               <div>
                 <h3 className="font-semibold text-base lg:text-lg break-words">{user.name}</h3>
+                <p className="text-sm text-muted-foreground break-all">@{user.username}</p>
                 <p className="text-sm text-muted-foreground break-all">{user.email}</p>
                 <Badge variant="outline" className="mt-2">
                   {user.role.charAt(0).toUpperCase() + user.role.slice(1)}

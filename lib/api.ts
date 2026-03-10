@@ -2,6 +2,7 @@
 
 // Base API configuration — configurable via env for Docker
 export const BACKEND_URL = 'https://api.maseprinting.com'
+// export const BACKEND_URL = 'https://localhost:9001'
 const API_BASE_URL = `${BACKEND_URL}/api`
 
 /**
@@ -59,10 +60,10 @@ async function apiRequest<T>(
         localStorage.removeItem('access_token')
         localStorage.removeItem('refresh_token')
         localStorage.removeItem('cm_user')
-        
+
         // Terminate the session and redirect to the login portal
         if (!window.location.pathname.includes('/login')) {
-           window.location.replace('/login')
+          window.location.replace('/login')
         }
       }
 
@@ -315,7 +316,7 @@ export const serviceAssignmentsApi = {
     apiRequest<{ success: boolean; message: string }>(`/service-assignments/${id}`, {
       method: 'DELETE',
     }),
-    
+
   getLastPaid: (customerId: string, serviceId: string) =>
     apiRequest<{ success: boolean; lastPaid: { amount: string; date: string } | null }>(
       `/service-assignments/get-last-paid/?customerId=${customerId}&serviceId=${serviceId}`
@@ -509,7 +510,7 @@ export const documentsApi = {
   },
 }
 
- // Users API for selecting checkout/checkin user
+// Users API for selecting checkout/checkin user
 export const usersDirectoryApi = {
   listUsers: () => apiRequest<any[]>('/users/users/'),
 }
@@ -703,29 +704,29 @@ export const salesApi = {
 
 // CMS API for website content and inquiries
 export const cmsApi = {
-  getConfig: () => 
+  getConfig: () =>
     apiRequest<any>('/cms/config/current/'),
-  
+
   updateConfig: (configData: any) =>
     apiRequest<any>('/cms/config/1/', {
       method: 'PATCH',
       body: JSON.stringify(configData),
     }),
-    
+
   getInquiries: () =>
     apiRequest<any[]>('/cms/inquiries/'),
-    
+
   updateInquiryStatus: (id: string | number, status: string) =>
     apiRequest<any>(`/cms/inquiries/${id}/`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     }),
-    
+
   deleteInquiry: (id: string | number) =>
     apiRequest<any>(`/cms/inquiries/${id}/`, {
       method: 'DELETE',
     }),
-    
+
   submitInquiry: (inquiryData: any) =>
     apiRequest<any>('/cms/inquiries/', {
       method: 'POST',

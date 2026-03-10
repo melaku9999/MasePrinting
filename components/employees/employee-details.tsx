@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils"
 
 interface Employee {
   id: number
+  username?: string
   user_id?: number
   name: string
   email: string
@@ -176,6 +177,7 @@ export function EmployeeDetails({ employee, onBack, initialViewMode, adminUser }
 
   const authUser: AuthUser = {
     id: currentEmployee.id.toString(),
+    username: currentEmployee.username || currentEmployee.email.split('@')[0],
     name: currentEmployee.name,
     email: currentEmployee.email,
     role: "employee",
@@ -202,6 +204,7 @@ export function EmployeeDetails({ employee, onBack, initialViewMode, adminUser }
               </AvatarFallback>
             </Avatar>
             <h3 className="text-xl font-bold">{currentEmployee.name}</h3>
+            <p className="text-xs text-muted-foreground">@{currentEmployee.username || currentEmployee.email.split('@')[0]}</p>
             <p className="text-sm text-muted-foreground font-medium">{currentEmployee.job_title}</p>
             <Badge variant="secondary" className="mt-2 rounded-full px-3">
               {currentEmployee.status}
