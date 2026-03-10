@@ -193,9 +193,10 @@ export function EmployeeForm({ employee, onSave, onCancel }: EmployeeFormProps) 
               </div>
               <div className="space-y-2">
                 <h3 className="font-bold text-xl text-card-foreground">{formData.name || "New Employee"}</h3>
-                <p className="text-sm text-muted-foreground">{formData.email || "employee@company.com"}</p>
+                <p className="text-sm text-muted-foreground">@{formData.username || "username"}</p>
+                <p className="text-xs text-muted-foreground">{formData.email || "employee@company.com"}</p>
                 <Badge variant="outline" className="text-sm px-3 py-1 bg-blue-50 text-blue-700 border-blue-200">
-                  {formData.status === 'admin' ? 'Administrator' : 'Employee'}
+                  {formData.role.charAt(0).toUpperCase() + formData.role.slice(1)}
                 </Badge>
               </div>
               

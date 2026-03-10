@@ -78,6 +78,8 @@ import { toast } from "sonner"
 interface AdminDashboardProps {
   user: UserType
   onLogout: () => void
+  initialTab?: string
+  onTabChange?: (tab: string) => void
 }
 
 // Navigation groups for better organization
@@ -128,8 +130,15 @@ const navigationGroups = [
 // Flatten for quick lookups
 const allNavigationItems = navigationGroups.flatMap((g) => g.items)
 
-export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
-  const [activeTab, setActiveTab] = useState("overview")
+export function AdminDashboard({ user, onLogout, initialTab = "overview", onTabChange }: AdminDashboardProps) {
+  const [activeTab, setActiveTab] = useState(initialTab)
+
+  // Sync activeTab when initialTab changes (e.g., via URL)
+  useEffect(() => {
+    if (initialTab && initialTab !== activeTab) {
+      setActiveTab(initialTab)
+    }
+  }, [initialTab])
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [mobileSheetOpen, setMobileSheetOpen] = useState(false)
@@ -279,6 +288,9 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
   const handleNavigation = (id: string) => {
     setActiveTab(id)
     setMobileSheetOpen(false)
+    if (onTabChange) {
+      onTabChange(id)
+    }
   }
 
   const currentPageLabel = allNavigationItems.find((item) => item.id === activeTab)?.label || "Dashboard"

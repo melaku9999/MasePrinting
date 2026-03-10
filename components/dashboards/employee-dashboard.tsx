@@ -65,6 +65,8 @@ import type { User as AuthUser } from "@/lib/auth"
 interface EmployeeDashboardProps {
   user: AuthUser
   onLogout: () => void
+  initialTab?: string
+  onTabChange?: (tab: string) => void
 }
 
 interface Notification {
@@ -112,8 +114,15 @@ const navigationGroups = [
 
 const allNavigationItems = navigationGroups.flatMap((g) => g.items)
 
-export function EmployeeDashboard({ user, onLogout }: EmployeeDashboardProps) {
-  const [activeTab, setActiveTab] = useState("overview")
+export function EmployeeDashboard({ user, onLogout, initialTab = "overview", onTabChange }: EmployeeDashboardProps) {
+  const [activeTab, setActiveTab] = useState(initialTab)
+
+  // Sync activeTab when initialTab changes (e.g., via URL)
+  useEffect(() => {
+    if (initialTab && initialTab !== activeTab) {
+      setActiveTab(initialTab)
+    }
+  }, [initialTab])
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
@@ -219,7 +228,12 @@ export function EmployeeDashboard({ user, onLogout }: EmployeeDashboardProps) {
               sidebarCollapsed ? "px-2" : "px-3",
               isActive ? "bg-primary/5 text-primary hover:bg-primary/10" : "text-muted-foreground hover:text-foreground"
             )}
-            onClick={() => setActiveTab(item.id)}
+            onClick={() => {
+              setActiveTab(item.id)
+              if (onTabChange) {
+                onTabChange(item.id)
+              }
+            }}
           >
             <Icon className={cn("h-4 w-4 shrink-0", !sidebarCollapsed && "mr-3")} />
             {!sidebarCollapsed && <span className="font-medium">{item.label}</span>}

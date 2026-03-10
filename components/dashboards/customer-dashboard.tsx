@@ -48,10 +48,19 @@ import { CustomerTaskView } from "@/components/tasks/customer-task-view"
 interface CustomerDashboardProps {
   user: User
   onLogout: () => void
+  initialTab?: string
+  onTabChange?: (tab: string) => void
 }
 
-export function CustomerDashboard({ user, onLogout }: CustomerDashboardProps) {
-  const [activeTab, setActiveTab] = useState("overview")
+export function CustomerDashboard({ user, onLogout, initialTab = "overview", onTabChange }: CustomerDashboardProps) {
+  const [activeTab, setActiveTab] = useState(initialTab)
+
+  // Sync activeTab when initialTab changes (e.g., via URL)
+  useEffect(() => {
+    if (initialTab && initialTab !== activeTab) {
+      setActiveTab(initialTab)
+    }
+  }, [initialTab])
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
@@ -259,10 +268,10 @@ export function CustomerDashboard({ user, onLogout }: CustomerDashboardProps) {
                     sidebarCollapsed && "lg:justify-center lg:px-2"
                   )}
                   onClick={() => {
-                    if (item.id === 'profile') {
-                      setActiveTab('profile')
-                    } else {
-                      setActiveTab(item.id)
+                    const nextTab = item.id === 'profile' ? 'profile' : item.id
+                    setActiveTab(nextTab)
+                    if (onTabChange) {
+                      onTabChange(nextTab)
                     }
                   }}
                 >
@@ -302,7 +311,10 @@ export function CustomerDashboard({ user, onLogout }: CustomerDashboardProps) {
                 variant="ghost" 
                 size="sm" 
                 className="w-full justify-start gap-2 h-8"
-                onClick={() => setActiveTab('profile')}
+                onClick={() => {
+                  setActiveTab('profile')
+                  if (onTabChange) onTabChange('profile')
+                }}
               >
                 <Settings className="h-3 w-3" />
                 Settings
@@ -539,7 +551,7 @@ export function CustomerDashboard({ user, onLogout }: CustomerDashboardProps) {
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-secondary">${customer.prepaymentBalance.toFixed(2)}</div>
+                    <div className="text-2xl font-bold text-secondary">${(customer?.prepaymentBalance ?? 0).toFixed(2)}</div>
                     <p className="text-xs text-muted-foreground">Available credit</p>
                   </CardContent>
                 </Card>
@@ -1375,15 +1387,14 @@ export function CustomerDashboard({ user, onLogout }: CustomerDashboardProps) {
         </div>
       </div>
 
-      {/* Service Details Modal */}
-      <ServiceDetails
-        service={selectedServiceForDetails}
-        open={showServiceDetails}
-        onClose={handleCloseServiceDetails}
-        showSubscriptionActions={!isServiceSubscribed(selectedServiceForDetails?.id || "")}
-        onSubscribe={handleServiceSubscription}
-        isSubscribed={isServiceSubscribed(selectedServiceForDetails?.id || "")}
-      />
+      {selectedServiceForDetails && (
+          <ServiceDetails
+            service={selectedServiceForDetails}
+            onClose={handleCloseServiceDetails}
+            onEdit={() => {}}
+            onAssign={() => {}}
+          />
+      )}
         </>
       )}
     </div>

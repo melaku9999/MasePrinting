@@ -1,15 +1,22 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useParams, useRouter } from "next/navigation"
 import { LoginForm } from "@/components/auth/login-form"
 import { AdminDashboard } from "@/components/dashboards/admin-dashboard"
 import { EmployeeDashboard } from "@/components/dashboards/employee-dashboard"
 import { CustomerDashboard } from "@/components/dashboards/customer-dashboard"
-import { checkAuth, getCurrentUser, logout, type User } from "@/lib/auth"
+import { checkAuth, logout, type User } from "@/lib/auth"
 
-export default function HomePage() {
+export default function DashboardPage() {
+  const params = useParams()
+  const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [isInitializing, setIsInitializing] = useState(true)
+
+  // Extract the slug/tab from the URL
+  const slug = params?.slug as string[] | undefined
+  const activeTab = slug?.[0] || "overview"
 
   useEffect(() => {
     const verifyAuth = async () => {
@@ -18,16 +25,16 @@ export default function HomePage() {
         if (activeUser) {
           setUser(activeUser)
         } else {
-          window.location.replace("/login")
+          router.replace("/login")
         }
       } catch (error) {
-        window.location.replace("/login")
+        router.replace("/login")
       } finally {
         setIsInitializing(false)
       }
     }
     verifyAuth()
-  }, [])
+  }, [router])
 
   if (isInitializing) {
     return (
@@ -40,25 +47,24 @@ export default function HomePage() {
     )
   }
 
-  if (!user) {
-    if (typeof window !== "undefined") {
-      window.location.href = "/login"
-    }
-    return null
-  }
+  if (!user) return null
 
   const handleLogout = async () => {
     await logout()
-    setUser(null)
+    router.push("/login")
+  }
+
+  const handleTabChange = (newTab: string) => {
+    router.push(`/dashboard/${newTab}`)
   }
 
   switch (user.role) {
     case "admin":
-      return <AdminDashboard user={user} onLogout={handleLogout} />
+      return <AdminDashboard user={user} onLogout={handleLogout} initialTab={activeTab} onTabChange={handleTabChange} />
     case "employee":
-      return <EmployeeDashboard user={user} onLogout={handleLogout} />
+      return <EmployeeDashboard user={user} onLogout={handleLogout} initialTab={activeTab} onTabChange={handleTabChange} />
     case "customer":
-      return <CustomerDashboard user={user} onLogout={handleLogout} />
+      return <CustomerDashboard user={user} onLogout={handleLogout} initialTab={activeTab} onTabChange={handleTabChange} />
     default:
       return <LoginForm onLogin={setUser} />
   }
