@@ -230,6 +230,24 @@ export function ServiceAssignmentForm({ service, assignment, onSave, onCancel }:
                       </div>
                     )}
                   </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Assign To (Optional)</label>
+                    <Select value={formData.assignedTo} onValueChange={(value) => handleInputChange("assignedTo", value)}>
+                      <SelectTrigger className="h-11 rounded-xl border-slate-200 font-bold">
+                        <SelectValue placeholder="Leave unassigned" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassigned" className="font-bold text-slate-400">Unassigned</SelectItem>
+                        {employees.map((emp) => (
+                          <SelectItem key={emp.employee_id} value={emp.employee_id.toString()} className="font-bold">
+                            {emp.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-slate-400 font-medium italic">If unassigned, the task can be claimed later by any employee.</p>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -270,6 +288,20 @@ export function ServiceAssignmentForm({ service, assignment, onSave, onCancel }:
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Integrator</p>
                   <p className="text-xs font-bold truncate">
                     {customers.find(c => c.id === formData.customerId)?.name || "Client Undefined"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="w-10 h-10 rounded-lg bg-white shadow-sm flex items-center justify-center text-slate-900 border border-slate-100">
+                  <Target className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Assignee</p>
+                  <p className="text-xs font-bold truncate">
+                    {formData.assignedTo === "unassigned" || !formData.assignedTo 
+                      ? "Unassigned" 
+                      : employees.find(e => e.employee_id.toString() === formData.assignedTo)?.name || "Unknown"}
                   </p>
                 </div>
               </div>

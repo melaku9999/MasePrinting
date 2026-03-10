@@ -31,7 +31,7 @@ import {
   Boxes,
   Briefcase,
 } from "lucide-react"
-import { employeesApi } from "@/lib/api"
+import { employeesApi, tasksApi } from "@/lib/api"
 import { mapBackendTaskToFrontend } from "@/lib/task-utils"
 import { connectTaskSocket } from "@/lib/websocket"
 import { toast } from "sonner"
@@ -52,15 +52,23 @@ export function EmployeeDashboard({ user, initialTab = "overview" }: EmployeeDas
   }, [initialTab])
 
   const [tasks, setTasks] = useState<any[]>([])
+  const [unassignedTasks, setUnassignedTasks] = useState<any[]>([])
   const [isLoadingTasks, setIsLoadingTasks] = useState(false)
 
   const fetchDashboardData = async () => {
     if (!user.employee_id) return
     setIsLoadingTasks(true)
     try {
-      const response = await employeesApi.getTasks(user.employee_id.toString())
-      const mapped = (response.results || []).map(mapBackendTaskToFrontend)
-      setTasks(mapped)
+      const [tasksRes, unassignedRes] = await Promise.all([
+        employeesApi.getTasks(user.employee_id.toString()),
+        tasksApi.getUnassigned({ page_size: 5 })
+      ])
+      
+      const mappedTasks = (tasksRes.results || []).map(mapBackendTaskToFrontend)
+      const mappedUnassigned = (unassignedRes.results || []).map(mapBackendTaskToFrontend)
+      
+      setTasks(mappedTasks)
+      setUnassignedTasks(mappedUnassigned)
     } catch (error) {
       console.error("Failed to fetch dashboard tasks:", error)
     } finally {
@@ -79,6 +87,19 @@ export function EmployeeDashboard({ user, initialTab = "overview" }: EmployeeDas
     })
     return () => disconnect()
   }, [user.employee_id])
+
+  const handleClaimTask = async (taskId: string) => {
+    if (!user.employee_id) return
+    try {
+      await tasksApi.assign(taskId, user.employee_id)
+      toast.success("Task claimed successfully! It is now in your queue.")
+      fetchDashboardData()
+      window.dispatchEvent(new CustomEvent('refreshTasks'))
+    } catch (error) {
+      console.error("Failed to claim task:", error)
+      toast.error("Failed to claim task. Please try again.")
+    }
+  }
 
   const pendingTasks = tasks.filter((task) => task.status === "pending")
   const inProgressTasks = tasks.filter((task) => task.status === "in-progress")
@@ -214,6 +235,58 @@ export function EmployeeDashboard({ user, initialTab = "overview" }: EmployeeDas
                         </div>
                       )
                     })}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="lg:col-span-7 shadow-sm border border-primary/20 bg-primary/5">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl font-bold flex items-center gap-2">
+                      <Target className="h-5 w-5 text-primary" />
+                      Available Opportunities
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground mt-1">Pick up unassigned jobs for customers</p>
+                  </div>
+                  <Badge variant="secondary" className="bg-primary/20 text-primary border-none">
+                    {unassignedTasks.length} New
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {unassignedTasks.length > 0 ? (
+                    unassignedTasks.map((task) => (
+                      <div key={task.id} className="flex items-center justify-between p-4 rounded-xl bg-white border shadow-sm group hover:border-primary/50 transition-all">
+                        <div className="flex items-center gap-4 min-w-0">
+                          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-all">
+                            <Briefcase className="h-5 w-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="font-bold text-sm truncate">{task.title}</h4>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-[10px] font-bold text-muted-foreground uppercase">{task.customer_name || "New Client"}</span>
+                              <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+                              <span className="text-[10px] font-bold text-primary">${task.price}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleClaimTask(task.id)}
+                          className="h-9 px-4 rounded-lg bg-primary hover:bg-primary/90 text-white font-bold transition-all active:scale-95 shrink-0"
+                        >
+                          Claim
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-full text-center py-8 bg-white/50 rounded-2xl border border-dashed border-primary/20 flex flex-col items-center">
+                      <CircleDot className="h-8 w-8 text-primary/30 mb-2" />
+                      <p className="text-xs font-bold text-primary/40 uppercase tracking-widest">No unassigned tasks available</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
