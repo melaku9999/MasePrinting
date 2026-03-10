@@ -97,7 +97,7 @@ export function ServiceMarketplace({ user }: ServiceMarketplaceProps) {
   const fetchEmployees = async () => {
     try {
       const response = await employeesApi.getAll({ page_size: 100 })
-      setEmployees(response.results || [])
+      setEmployees(response.results?.filter((e: any) => e.employee_id != null) || [])
     } catch (error) {
       console.error("Failed to fetch employees:", error)
     }
@@ -335,8 +335,8 @@ export function ServiceMarketplace({ user }: ServiceMarketplaceProps) {
                             Unassigned (Any employee can claim)
                           </SelectItem>
                           {employees.map((e) => (
-                            <SelectItem key={e.employee_id} value={e.employee_id.toString()} className="rounded-xl focus:bg-primary/10">
-                              {e.first_name} {e.last_name} {e.employee_id.toString() === user?.employee_id?.toString() && "(You)"}
+                            <SelectItem key={e.employee_id} value={String(e.employee_id)} className="rounded-xl focus:bg-primary/10">
+                              {e.first_name} {e.last_name} {String(e.employee_id) === user?.employee_id?.toString() && "(You)"}
                             </SelectItem>
                           ))}
                         </ScrollArea>

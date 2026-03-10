@@ -59,7 +59,7 @@ export function ServiceAssignmentForm({ service, assignment, onSave, onCancel }:
         
         setCustomers(mappedCustomers)
         setServices((servicesRes as any).results || [])
-        setEmployees((employeesRes as any).results || [])
+        setEmployees((employeesRes as any).results?.filter((e: any) => e.employee_id != null) || [])
        
         // If we have a passed service, ensure its price is used if customPrice is 0
         if (service && !assignment && formData.customPrice === 0) {
@@ -240,7 +240,7 @@ export function ServiceAssignmentForm({ service, assignment, onSave, onCancel }:
                       <SelectContent>
                         <SelectItem value="unassigned" className="font-bold text-slate-400">Unassigned</SelectItem>
                         {employees.map((emp) => (
-                          <SelectItem key={emp.employee_id} value={emp.employee_id.toString()} className="font-bold">
+                          <SelectItem key={emp.employee_id} value={String(emp.employee_id)} className="font-bold">
                             {emp.first_name} {emp.last_name}
                           </SelectItem>
                         ))}
@@ -301,7 +301,7 @@ export function ServiceAssignmentForm({ service, assignment, onSave, onCancel }:
                   <p className="text-xs font-bold truncate">
                     {formData.assignedTo === "unassigned" || !formData.assignedTo 
                       ? "Unassigned" 
-                      : (() => { const e = employees.find(e => e.employee_id.toString() === formData.assignedTo); return e ? `${e.first_name} ${e.last_name}` : "Unknown"; })()}
+                      : (() => { const emp = employees.find(emp => String(emp.employee_id) === formData.assignedTo); return emp ? `${emp.first_name} ${emp.last_name}` : "Unknown"; })()}
                   </p>
                 </div>
               </div>

@@ -111,7 +111,7 @@ export function TaskList({
   const getEmployeeName = (employeeId: string) => {
     if (!employeeId || employeeId === "unassigned") return "Unassigned"
 
-    const employee = employeesState.find(emp => emp.employee_id.toString() === employeeId)
+    const employee = employeesState.find(emp => String(emp.employee_id) === employeeId)
     return employee ? employee.employee_name : "Unknown Employee"
   }
 
@@ -128,16 +128,20 @@ export function TaskList({
         // First check if it's a paginated response with results property
         if (response && typeof response === 'object' && 'results' in response && Array.isArray(response.results)) {
           // Handle paginated response
-          transformedEmployees = response.results.map((employee: any) => ({
-            employee_id: employee.id,
-            employee_name: employee.name
-          }))
+          transformedEmployees = response.results
+            .filter((employee: any) => (employee.employee_id || employee.id) != null)
+            .map((employee: any) => ({
+              employee_id: employee.employee_id || employee.id,
+              employee_name: employee.employee_name || employee.name || `${employee.first_name || ''} ${employee.last_name || ''}`.trim()
+            }))
         } else if (response && Array.isArray(response)) {
           // Handle array response
-          transformedEmployees = response.map((employee: any) => ({
-            employee_id: employee.employee_id || employee.id,
-            employee_name: employee.employee_name || employee.name
-          }))
+          transformedEmployees = response
+            .filter((employee: any) => (employee.employee_id || employee.id) != null)
+            .map((employee: any) => ({
+              employee_id: employee.employee_id || employee.id,
+              employee_name: employee.employee_name || employee.name || `${employee.first_name || ''} ${employee.last_name || ''}`.trim()
+            }))
         } else {
           // Fallback to empty array
           transformedEmployees = []
@@ -550,7 +554,7 @@ export function TaskList({
                             </SelectTrigger>
                             <SelectContent>
                               {employeesState.map((emp) => (
-                                <SelectItem key={emp.employee_id} value={emp.employee_id.toString()}>
+                                <SelectItem key={emp.employee_id} value={String(emp.employee_id)}>
                                   {emp.employee_name}
                                 </SelectItem>
                               ))}
