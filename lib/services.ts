@@ -20,6 +20,7 @@ export interface ServiceAssignment {
   assignedDate: string
   notes?: string
   customPrice?: number
+  assignedTo?: string
 }
 
 // Extended mock data

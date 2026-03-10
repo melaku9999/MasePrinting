@@ -23,7 +23,7 @@ import {
   Info,
   Target
 } from "lucide-react"
-import { servicesApi, customersApi, serviceAssignmentsApi } from "@/lib/api"
+import { servicesApi, customersApi, serviceAssignmentsApi, employeesApi } from "@/lib/api"
 import { toast } from "sonner"
 import { 
   Dialog, 
@@ -62,11 +62,14 @@ export function ServiceMarketplace({ user }: ServiceMarketplaceProps) {
   const [lastPaid, setLastPaid] = useState<{ amount: string, date: string } | null>(null)
   const [isRecording, setIsRecording] = useState(false)
   const [isLoadingLastPaid, setIsLoadingLastPaid] = useState(false)
+  const [employees, setEmployees] = useState<any[]>([])
+  const [assignedToId, setAssignedToId] = useState<string>(user?.employee_id?.toString() || "")
 
   // Initialization
   useEffect(() => {
     fetchServices()
     fetchCustomers()
+    fetchEmployees()
   }, [])
 
   const fetchServices = async () => {
@@ -91,11 +94,21 @@ export function ServiceMarketplace({ user }: ServiceMarketplaceProps) {
     }
   }
 
+  const fetchEmployees = async () => {
+    try {
+      const response = await employeesApi.getAll({ page_size: 100 })
+      setEmployees(response.results || [])
+    } catch (error) {
+      console.error("Failed to fetch employees:", error)
+    }
+  }
+
   const handleServiceSelect = (service: any) => {
     setSelectedService(service)
     setCustomPrice(service.price.toString())
     setNotes("")
     setSelectedCustomerId("")
+    setAssignedToId(user?.employee_id?.toString() || "")
     setLastPaid(null)
     setIsModalOpen(true)
   }
@@ -141,7 +154,7 @@ export function ServiceMarketplace({ user }: ServiceMarketplaceProps) {
         notes: notes || "Recorded directly from employee portal",
         // @ts-ignore - Extra fields for our custom logic
         status: "active",
-        assignedTo: user.employee_id,
+        assignedTo: assignedToId === "unassigned" ? undefined : assignedToId,
         due_date: today
       })
       
@@ -310,6 +323,27 @@ export function ServiceMarketplace({ user }: ServiceMarketplaceProps) {
                     </CardContent>
                   </Card>
 
+                  <div className="space-y-2">
+                    <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Assign To</Label>
+                    <Select value={assignedToId} onValueChange={setAssignedToId}>
+                      <SelectTrigger className="h-12 border-none bg-white/80 backdrop-blur-sm shadow-inner rounded-2xl px-4">
+                        <SelectValue placeholder="Assign to an employee" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl border-none shadow-xl">
+                        <ScrollArea className="h-[200px]">
+                          <SelectItem value="unassigned" className="rounded-xl focus:bg-primary/10">
+                            Unassigned (Any employee can claim)
+                          </SelectItem>
+                          {employees.map((e) => (
+                            <SelectItem key={e.employee_id} value={e.employee_id.toString()} className="rounded-xl focus:bg-primary/10">
+                              {e.first_name} {e.last_name} {e.employee_id.toString() === user?.employee_id?.toString() && "(You)"}
+                            </SelectItem>
+                          ))}
+                        </ScrollArea>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Final Price ($)</Label>
@@ -349,7 +383,7 @@ export function ServiceMarketplace({ user }: ServiceMarketplaceProps) {
               <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 flex items-start gap-3">
                 <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                 <p className="text-xs text-primary/80 font-medium leading-relaxed">
-                  Recording this service will automatically create an active task assigned to you with a deadline set for end-of-day.
+                  Recording this service will automatically create an active task {assignedToId === "unassigned" ? "that can be claimed by any employee" : `assigned to ${assignedToId === user?.employee_id?.toString() ? "you" : "the selected employee"}`} with a deadline set for end-of-day.
                 </p>
               </div>
             </div>

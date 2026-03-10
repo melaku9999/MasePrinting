@@ -300,16 +300,22 @@ export const serviceAssignmentsApi = {
   getById: (id: string) =>
     apiRequest<{ success: boolean; assignment: any }>(`/service-assignments/${id}`),
 
-  create: (assignmentData: { customerId: string; serviceId: string; customPrice?: number; notes?: string }) =>
+  create: (assignmentData: { customerId: string; serviceId: string; customPrice?: number; notes?: string; assignedTo?: string }) =>
     apiRequest<{ success: boolean; assignment: any }>('/service-assignments', {
       method: 'POST',
-      body: JSON.stringify(assignmentData),
+      body: JSON.stringify({
+        ...assignmentData,
+        assigned_to: assignmentData.assignedTo
+      }),
     }),
 
-  update: (id: string, assignmentData: { status?: string; customPrice?: number; notes?: string }) =>
+  update: (id: string, assignmentData: { status?: string; customPrice?: number; notes?: string; assignedTo?: string }) =>
     apiRequest<{ success: boolean; assignment: any }>(`/service-assignments/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(assignmentData),
+      body: JSON.stringify({
+        ...assignmentData,
+        assigned_to: assignmentData.assignedTo
+      }),
     }),
 
   delete: (id: string) =>

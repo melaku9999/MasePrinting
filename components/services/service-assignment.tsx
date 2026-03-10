@@ -13,7 +13,7 @@ import type { ServiceAssignment } from "@/lib/services"
 import type { Customer, Service } from "@/lib/auth"
 import { mockCustomers, mockServices } from "@/lib/auth"
 import { cn } from "@/lib/utils"
-import { customersApi, servicesApi, serviceAssignmentsApi } from "@/lib/api"
+import { customersApi, servicesApi, serviceAssignmentsApi, employeesApi } from "@/lib/api"
 import { toast } from "sonner"
 
 interface ServiceAssignmentProps {
@@ -31,21 +31,24 @@ export function ServiceAssignmentForm({ service, assignment, onSave, onCancel }:
     notes: assignment?.notes || "",
     customPrice: assignment?.customPrice || service?.price || 0,
     due_date: (assignment as any)?.due_date || "",
+    assignedTo: (assignment as any)?.assignedTo || "",
   })
   const [lastPaid, setLastPaid] = useState<{ amount: string; date: string } | null>(null)
   const [fetchingLastPaid, setFetchingLastPaid] = useState(false)
 
   const [customers, setCustomers] = useState<Customer[]>([])
   const [services, setServices] = useState<Service[]>([])
+  const [employees, setEmployees] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true)
-        const [customersRes, servicesRes] = await Promise.all([
+        const [customersRes, servicesRes, employeesRes] = await Promise.all([
           customersApi.getListMin(),
-          servicesApi.getAll({ page_size: 100 })
+          servicesApi.getAll({ page_size: 100 }),
+          employeesApi.getAll({ page_size: 100 })
         ])
         
         // Map backend customer_id to id for consistency with interface
@@ -56,7 +59,8 @@ export function ServiceAssignmentForm({ service, assignment, onSave, onCancel }:
         
         setCustomers(mappedCustomers)
         setServices((servicesRes as any).results || [])
-        
+        setEmployees((employeesRes as any).results || [])
+       
         // If we have a passed service, ensure its price is used if customPrice is 0
         if (service && !assignment && formData.customPrice === 0) {
           setFormData(prev => ({ ...prev, customPrice: service.price }))
@@ -106,6 +110,7 @@ export function ServiceAssignmentForm({ service, assignment, onSave, onCancel }:
     }
     onSave({
       ...formData,
+      assignedTo: formData.assignedTo === "unassigned" ? undefined : formData.assignedTo,
       assignedDate: assignment?.assignedDate || new Date().toISOString().split("T")[0],
     })
   }
