@@ -1,51 +1,20 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { LoginForm } from "@/components/auth/login-form"
 import { AdminDashboard } from "@/components/dashboards/admin-dashboard"
 import { EmployeeDashboard } from "@/components/dashboards/employee-dashboard"
 import { CustomerDashboard } from "@/components/dashboards/customer-dashboard"
-import { checkAuth, logout, type User } from "@/lib/auth"
+import { useUser } from "@/components/providers/user-provider"
+import { logout } from "@/lib/auth"
 
 export default function DashboardPage() {
   const params = useParams()
   const router = useRouter()
-  const [user, setUser] = useState<User | null>(null)
-  const [isInitializing, setIsInitializing] = useState(true)
+  const { user } = useUser()
 
   // Extract the slug/tab from the URL
   const slug = params?.slug as string[] | undefined
   const activeTab = slug?.[0] || "overview"
-
-  useEffect(() => {
-    const verifyAuth = async () => {
-      try {
-        const activeUser = await checkAuth()
-        if (activeUser) {
-          setUser(activeUser)
-        } else {
-          router.replace("/login")
-        }
-      } catch (error) {
-        router.replace("/login")
-      } finally {
-        setIsInitializing(false)
-      }
-    }
-    verifyAuth()
-  }, [router])
-
-  if (isInitializing) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-pulse flex flex-col items-center gap-4">
-          <div className="h-12 w-12 bg-primary/20 rounded-xl" />
-          <p className="text-muted-foreground animate-bounce">Loading...</p>
-        </div>
-      </div>
-    )
-  }
 
   if (!user) return null
 
@@ -60,12 +29,13 @@ export default function DashboardPage() {
 
   switch (user.role) {
     case "admin":
-      return <AdminDashboard user={user} onLogout={handleLogout} initialTab={activeTab} onTabChange={handleTabChange} />
+      return <AdminDashboard user={user} initialTab={activeTab} />
     case "employee":
-      return <EmployeeDashboard user={user} onLogout={handleLogout} initialTab={activeTab} onTabChange={handleTabChange} />
+      return <EmployeeDashboard user={user} initialTab={activeTab} />
     case "customer":
-      return <CustomerDashboard user={user} onLogout={handleLogout} initialTab={activeTab} onTabChange={handleTabChange} />
+      return <CustomerDashboard user={user} initialTab={activeTab} />
     default:
-      return <LoginForm onLogin={setUser} />
+      router.replace("/login")
+      return null
   }
 }
