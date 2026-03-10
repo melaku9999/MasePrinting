@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
-import { AdminContent } from "@/components/dashboards/admin-content"
-import { EmployeeContent } from "@/components/dashboards/employee-content"
-import { CustomerContent } from "@/components/dashboards/customer-content"
-import { checkAuth, type User } from "@/lib/auth"
+import { LoginForm } from "@/components/auth/login-form"
+import { AdminDashboard } from "@/components/dashboards/admin-dashboard"
+import { EmployeeDashboard } from "@/components/dashboards/employee-dashboard"
+import { CustomerDashboard } from "@/components/dashboards/customer-dashboard"
+import { checkAuth, logout, type User } from "@/lib/auth"
 
 export default function DashboardPage() {
   const params = useParams()
@@ -35,20 +36,36 @@ export default function DashboardPage() {
     verifyAuth()
   }, [router])
 
-  if (isInitializing) return null // Handled by layout.tsx loading state
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse flex flex-col items-center gap-4">
+          <div className="h-12 w-12 bg-primary/20 rounded-xl" />
+          <p className="text-muted-foreground animate-bounce">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!user) return null
 
-  // We only render the content part. The sidebar and header are in layout.tsx
+  const handleLogout = async () => {
+    await logout()
+    router.push("/login")
+  }
+
+  const handleTabChange = (newTab: string) => {
+    router.push(`/dashboard/${newTab}`)
+  }
+
   switch (user.role) {
     case "admin":
-      return <AdminContent user={user} activeTab={activeTab} />
+      return <AdminDashboard user={user} onLogout={handleLogout} initialTab={activeTab} onTabChange={handleTabChange} />
     case "employee":
-      return <EmployeeContent user={user} activeTab={activeTab} />
+      return <EmployeeDashboard user={user} onLogout={handleLogout} initialTab={activeTab} onTabChange={handleTabChange} />
     case "customer":
-      return <CustomerContent user={user} activeTab={activeTab} />
+      return <CustomerDashboard user={user} onLogout={handleLogout} initialTab={activeTab} onTabChange={handleTabChange} />
     default:
-      router.replace("/login")
-      return null
+      return <LoginForm onLogin={setUser} />
   }
 }
