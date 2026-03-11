@@ -283,6 +283,11 @@ export const employeesApi = {
       method: "PATCH",
       body: JSON.stringify(employeeData),
     }),
+
+  delete: (id: string) =>
+    apiRequest<any>(`/employees/${id}/delete/`, {
+      method: "DELETE",
+    }),
 }
 
 // Service Assignments API

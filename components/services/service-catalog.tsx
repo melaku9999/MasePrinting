@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -15,7 +15,8 @@ import {
   AlertCircle,
   Clock,
   FileText,
-  Eye
+  Eye,
+  Trash2
 } from "lucide-react"
 import { type Service, type Customer, mockCustomers } from "@/lib/auth"
 import { cn } from "@/lib/utils"
@@ -110,6 +111,23 @@ export function ServiceCatalog({ onViewService, onEditService, onAddService, onA
       setError("Error fetching services: " + err)
       toast.error("Failed to load services")
     } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to permanently delete the service catalog entry for "${name}"? This action cannot be undone.`)) {
+      return
+    }
+
+    try {
+      setLoading(true)
+      await servicesApi.delete(id)
+      toast.success(`Service "${name}" removed from registry`)
+      fetchServices(currentPage)
+    } catch (err) {
+      console.error("Deletion failed:", err)
+      toast.error("Failed to delete service")
       setLoading(false)
     }
   }
@@ -231,6 +249,14 @@ export function ServiceCatalog({ onViewService, onEditService, onAddService, onA
                     className="h-9 w-9 rounded-xl border border-slate-100/50 hover:bg-slate-50 text-slate-400 hover:text-slate-900 transition-all active:scale-95"
                   >
                     <Edit className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => handleDelete(service.id, service.name)}
+                    className="h-9 w-9 rounded-xl border border-slate-100/50 hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-all active:scale-95"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                   <Button
                     size="icon"
