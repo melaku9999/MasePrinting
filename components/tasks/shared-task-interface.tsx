@@ -62,8 +62,16 @@ export function SharedTaskInterface({
     if (!silent) setIsLoading(true)
     try {
       let response
-      if (viewMode === "employee" && user.employee_id) {
-        response = await employeesApi.getTasks(user.employee_id.toString(), { page_size: 1000 })
+      if (viewMode === "employee") {
+        if (user.employee_id) {
+          response = await employeesApi.getTasks(user.employee_id.toString(), { page_size: 1000 })
+        } else {
+          // If in employee mode but no ID (e.g. backend not yet deployed), 
+          // do not fall back to showing all tasks.
+          setTasks([])
+          setIsLoading(false)
+          return
+        }
       } else {
         response = await tasksApi.getAll({ page_size: 1000 })
       }
