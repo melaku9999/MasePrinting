@@ -645,8 +645,6 @@ export const inventoryApi = {
     return apiRequest<any[]>(`/inventory/products/?${searchParams}`)
   },
   createProduct: (data: any) => apiRequest<any>('/inventory/products/', { method: 'POST', body: JSON.stringify(data) }),
-  updateProduct: (id: number | string, data: any) => apiRequest<any>(`/inventory/products/${id}/update/`, { method: 'PATCH', body: JSON.stringify(data) }),
-  deleteProduct: (id: number | string) => apiRequest<any>(`/inventory/products/${id}/delete/`, { method: 'DELETE' }),
   getBatches: (params?: any) => {
     const searchParams = new URLSearchParams()
     if (params) {

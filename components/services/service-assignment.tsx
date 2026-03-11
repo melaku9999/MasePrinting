@@ -19,15 +19,14 @@ import { toast } from "sonner"
 interface ServiceAssignmentProps {
   service?: Service
   assignment?: ServiceAssignment
-  customerId?: string
   onSave: (assignment: Partial<ServiceAssignment>) => void
   onCancel: () => void
 }
 
-export function ServiceAssignmentForm({ service, assignment, customerId, onSave, onCancel }: ServiceAssignmentProps) {
+export function ServiceAssignmentForm({ service, assignment, onSave, onCancel }: ServiceAssignmentProps) {
   const [formData, setFormData] = useState({
     serviceId: service?.id || assignment?.serviceId || "",
-    customerId: customerId || assignment?.customerId || "",
+    customerId: assignment?.customerId || "",
     status: assignment?.status || "active", // Default to active for immediate task creation
     notes: assignment?.notes || "",
     customPrice: assignment?.customPrice || service?.price || 0,

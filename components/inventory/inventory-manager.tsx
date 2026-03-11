@@ -46,8 +46,7 @@ import {
   TrendingUp,
   Building,
   AlertTriangle,
-  ArrowRight,
-  Trash2
+  ArrowRight
 } from "lucide-react"
 import { inventoryApi, branchesApi } from "@/lib/api"
 import { toast } from "sonner"
@@ -87,7 +86,6 @@ export function InventoryManager({ user }: InventoryManagerProps) {
   
   // Dialog states
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false)
-  const [editingProductId, setEditingProductId] = useState<number | null>(null)
   const [productForm, setProductForm] = useState({ name: "", sku: "", base_price: "", low_stock_threshold: "10" })
   
   const [isBatchDialogOpen, setIsBatchDialogOpen] = useState(false)
@@ -212,49 +210,14 @@ export function InventoryManager({ user }: InventoryManagerProps) {
     }
   }
 
-  const handleEditProduct = (product: any) => {
-    setEditingProductId(product.id)
-    setProductForm({
-      name: product.name || "",
-      sku: product.sku || "",
-      base_price: product.base_price?.toString() || "",
-      low_stock_threshold: product.low_stock_threshold?.toString() || "10"
-    })
-    setIsProductDialogOpen(true)
-  }
-
-  const handleSaveProduct = async () => {
+  const handleCreateProduct = async () => {
     try {
-      if (editingProductId) {
-        await inventoryApi.updateProduct(editingProductId, productForm)
-        toast.success("Product updated successfully")
-      } else {
-        await inventoryApi.createProduct(productForm)
-        toast.success("Product created successfully")
-      }
+      await inventoryApi.createProduct(productForm)
+      toast.success("Product created successfully")
       setIsProductDialogOpen(false)
-      setEditingProductId(null)
-      setProductForm({ name: "", sku: "", base_price: "", low_stock_threshold: "10" })
       fetchData()
     } catch (error) {
-      toast.error(editingProductId ? "Failed to update product" : "Failed to create product")
-    }
-  }
-
-  const handleDeleteProduct = async (id: number, name: string) => {
-    if (!confirm(`Are you sure you want to permanently delete "${name}"? This will remove it from the catalog and all distribution manifests.`)) {
-      return
-    }
-
-    try {
-      setLoading(true)
-      await inventoryApi.deleteProduct(id)
-      toast.success(`Asset "${name}" purged from registry`)
-      fetchData()
-    } catch (error) {
-      console.error("Deletion failed:", error)
-      toast.error("Failed to delete product")
-      setLoading(false)
+      toast.error("Failed to create product")
     }
   }
 
@@ -660,19 +623,7 @@ export function InventoryManager({ user }: InventoryManagerProps) {
                                    setIsRequestDialogOpen(true)
                                  }}>Reserve</Button>
                                )}
-                                {isAdmin && (
-                                 <Button variant="ghost" size="sm" className="h-8 text-[10px] font-black uppercase text-slate-400 hover:text-slate-900 hover:bg-white rounded-lg border border-transparent hover:border-slate-100 shadow-none hover:shadow-sm" onClick={() => handleEditProduct(p)}>Modify</Button>
-                                )}
-                               {isAdmin && (
-                                 <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" 
-                                  onClick={() => handleDeleteProduct(p.id, p.name)}
-                                 >
-                                   <Trash2 className="h-3.5 w-3.5" />
-                                 </Button>
-                               )}
+                               <Button variant="ghost" size="sm" className="h-8 text-[10px] font-black uppercase text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-transparent hover:border-rose-100 shadow-none hover:shadow-sm">Modify</Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -1231,15 +1182,9 @@ export function InventoryManager({ user }: InventoryManagerProps) {
       </Dialog>
 
       {/* Product Dialog */}
-      <Dialog open={isProductDialogOpen} onOpenChange={(open) => {
-        setIsProductDialogOpen(open)
-        if (!open) {
-          setEditingProductId(null)
-          setProductForm({ name: "", sku: "", base_price: "", low_stock_threshold: "10" })
-        }
-      }}>
+      <Dialog open={isProductDialogOpen} onOpenChange={setIsProductDialogOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{editingProductId ? "Modify Asset Record" : "Inventory Control - New Catalog Item"}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Inventory Control - New Catalog Item</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label>Product Name</Label>
@@ -1261,7 +1206,7 @@ export function InventoryManager({ user }: InventoryManagerProps) {
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleSaveProduct}>{editingProductId ? "Synchronize Changes" : "Register Product"}</Button>
+            <Button onClick={handleCreateProduct}>Register Product</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
