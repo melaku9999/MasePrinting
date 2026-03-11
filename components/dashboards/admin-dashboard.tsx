@@ -343,8 +343,8 @@ export function AdminDashboard({ user, initialTab = "overview" }: AdminDashboard
 
       {activeTab === "customers" && <CustomerManagement user={user} />}
       {activeTab === "services" && <ServiceManagement />}
-      {activeTab === "tasks" && <MimiMyTasks user={user} />}
-      {activeTab === "mytasks" && <TaskManagement user={user} />}
+      {activeTab === "tasks" && <TaskManagement user={user} />}
+      {activeTab === "mytasks" && <MimiMyTasks user={user} />}
       {activeTab === "boxfiles" && <BoxFileManagement />}
       {activeTab === "employees" && <EmployeeManagement user={user} />}
       {activeTab === "branches" && <BranchManager />}
