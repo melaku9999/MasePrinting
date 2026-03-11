@@ -68,17 +68,14 @@ export function DashboardShell({ user, onLogout, children }: DashboardShellProps
   }
 
   const sidebarContent = (
-    <div className="flex flex-col h-full bg-card min-h-0">
+    <div className="flex flex-col h-full bg-card min-h-0 overflow-hidden">
       {/* Brand header */}
-      <div className={cn(
-        "flex items-center h-16 border-b border-border/60 shrink-0 relative",
-        sidebarCollapsed && !isMobile ? "justify-center px-0" : "px-4 gap-3"
-      )}>
+      <div className="flex items-center gap-3 px-4 h-16 border-b border-border/60 shrink-0">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm shrink-0">
           M
         </div>
         {(!sidebarCollapsed || isMobile) && (
-          <div className="flex-1 overflow-hidden">
+          <div className="overflow-hidden">
             <h2 className="text-sm font-semibold text-foreground truncate leading-tight">Maseprinting</h2>
             <p className="text-[11px] text-muted-foreground truncate leading-tight">Management System</p>
           </div>
@@ -88,10 +85,7 @@ export function DashboardShell({ user, onLogout, children }: DashboardShellProps
             variant="ghost"
             size="icon"
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className={cn(
-              "h-7 w-7 text-muted-foreground hover:text-foreground shrink-0 z-50 transition-all",
-              sidebarCollapsed ? "absolute -right-3.5 top-1/2 -translate-y-1/2 bg-card border border-border/80 shadow-md rounded-full h-7 w-7 flex items-center justify-center p-0" : "ml-auto"
-            )}
+            className="ml-auto h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
           >
             {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
           </Button>

@@ -33,7 +33,6 @@ import { cn } from "@/lib/utils"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { toast } from "sonner"
 
 interface CustomerListProps {
   onViewCustomer: (customer: Customer) => void
@@ -136,23 +135,6 @@ export function CustomerList({ onViewCustomer, onEditCustomer, onAddCustomer, on
     }
   }
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to permanently remove "${name}" from the registry? This action is irrevocable.`)) {
-      return
-    }
-
-    try {
-      setLoading(true)
-      await customersApi.delete(id)
-      toast.success(`Entity "${name}" successfully removed`)
-      fetchCustomers(currentPage)
-    } catch (err: any) {
-      console.error("Deletion failed:", err)
-      toast.error(err.message || "Failed to delete account from server")
-      setLoading(false)
-    }
-  }
-
   // Initial fetch
   useEffect(() => {
     fetchCustomers(1, "")
@@ -251,9 +233,11 @@ export function CustomerList({ onViewCustomer, onEditCustomer, onAddCustomer, on
                       <DropdownMenuItem onClick={() => onEditCustomer(customer)} className="cursor-pointer">
                         <Edit className="h-4 w-4 mr-2" /> Edit Details
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDelete(customer.id, customer.name)} className="cursor-pointer text-rose-600 focus:text-rose-600">
-                        <Trash2 className="h-4 w-4 mr-2" /> Delete Account
-                      </DropdownMenuItem>
+                      {onDeleteCustomer && (
+                        <DropdownMenuItem onClick={() => onDeleteCustomer(customer.id)} className="cursor-pointer text-rose-600 focus:text-rose-600">
+                          <Trash2 className="h-4 w-4 mr-2" /> Delete Account
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>

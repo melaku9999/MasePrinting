@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Search, UserPlus, MoreVertical, CheckCircle2, ArrowLeft, Loader2, ChevronLeft, ChevronRight, Mail, Phone, Building2, User, Edit, Briefcase, Layout, TrendingUp, Users, ShoppingCart, Filter, Trash2 } from "lucide-react"
+import { Search, UserPlus, MoreVertical, CheckCircle2, ArrowLeft, Loader2, ChevronLeft, ChevronRight, Mail, Phone, Building2, User, Edit, Briefcase, Layout, TrendingUp, Users, ShoppingCart, Filter } from "lucide-react"
 import { mockUsers } from "@/lib/auth"
 import { EmployeeForm } from "./employee-form"
 import { EmployeeTaskManagement } from "./employee-task-management"
@@ -127,27 +127,6 @@ export function EmployeeManagement({ user }: EmployeeManagementProps) {
     setSelectedEmployeeData(employee)
     setInitialViewMode(subMode)
     setViewMode(mode)
-  }
-
-  const handleDeleteEmployee = async (employee: Employee) => {
-    if (!confirm(`Are you sure you want to permanently remove "${employee.name}" from the active directory? This will revoke all access and erase their personnel profile.`)) {
-      return
-    }
-
-    try {
-      setLoading(true)
-      await employeesApi.delete(employee.id.toString())
-      toast.success(`Personnel record for "${employee.name}" has been purged`)
-      
-      // Force refresh
-      setSearchTerm(prev => prev + " ")
-      setTimeout(() => setSearchTerm(prev => prev.trim()), 0)
-    } catch (err: any) {
-      console.error("Deletion failed:", err)
-      toast.error(err.message || "Failed to remove personnel record from server")
-    } finally {
-      setLoading(false)
-    }
   }
 
   const [activeSubTab, setActiveSubTab] = useState<"directory" | "analytics">("directory")
@@ -342,11 +321,8 @@ export function EmployeeManagement({ user }: EmployeeManagementProps) {
                                 <DropdownMenuItem className="py-3 px-4 font-bold text-sm cursor-pointer" onClick={() => handleAction("details", employee, "sales")}>
                                   <ShoppingCart className="h-4 w-4 mr-3 text-emerald-500" /> Sales History
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="py-3 px-4 font-bold text-sm cursor-pointer text-red-500 hover:bg-red-50" onClick={() => handleAction("tasks", employee)}>
+                                <DropdownMenuItem className="py-3 px-4 font-bold text-sm cursor-pointer text-red-600" onClick={() => handleAction("tasks", employee)}>
                                   <CheckCircle2 className="h-4 w-4 mr-3 text-red-500" /> Assignment Hub
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="py-3 px-4 font-bold text-sm cursor-pointer text-rose-600 hover:bg-rose-50" onClick={() => handleDeleteEmployee(employee)}>
-                                  <Trash2 className="h-4 w-4 mr-3 text-rose-600" /> Termination / Delete
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
