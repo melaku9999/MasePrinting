@@ -49,8 +49,8 @@ export const ADMIN_NAVIGATION: NavGroup[] = [
     items: [
       { id: "customers", label: "Customers", icon: Users },
       { id: "services", label: "Services", icon: Building },
-      { id: "tasks", label: "Pending Tasks", icon: CheckCircle2 },
-      { id: "mytasks", label: "My Tasks", icon: CheckCircle2 },
+      { id: "tasks", label: "My Tasks", icon: CheckCircle2 },
+      { id: "mytasks", label: "All Tasks", icon: CheckCircle2 },
       { id: "calendar", label: "Calendar", icon: CalendarDays },
       { id: "boxfiles", label: "Box Files", icon: FolderOpen },
       { id: "employees", label: "Employees", icon: UserCheck },
@@ -78,7 +78,7 @@ export const EMPLOYEE_NAVIGATION: NavGroup[] = [
     label: "Main",
     items: [
       { id: "overview", label: "Overview", icon: Home },
-      { id: "tasks", label: "My Tasks", icon: CheckCircle2 },
+      { id: "tasks", label: "Tasks", icon: CheckCircle2 },
     ],
   },
   {
