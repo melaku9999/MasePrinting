@@ -69,25 +69,32 @@ export function DashboardShell({ user, onLogout, children }: DashboardShellProps
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-card min-h-0 overflow-hidden">
-      {/* Brand header */}
-      <div className="flex items-center gap-3 px-4 h-16 border-b border-border/60 shrink-0">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm shrink-0">
-          M
-        </div>
+      <div className={cn(
+        "flex items-center h-16 border-b border-border/60 shrink-0",
+        sidebarCollapsed && !isMobile ? "justify-center" : "px-4 gap-3"
+      )}>
         {(!sidebarCollapsed || isMobile) && (
-          <div className="overflow-hidden">
-            <h2 className="text-sm font-semibold text-foreground truncate leading-tight">Maseprinting</h2>
-            <p className="text-[11px] text-muted-foreground truncate leading-tight">Management System</p>
-          </div>
+          <>
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm shrink-0">
+              M
+            </div>
+            <div className="overflow-hidden flex-1">
+              <h2 className="text-sm font-semibold text-foreground truncate leading-tight">Maseprinting</h2>
+              <p className="text-[11px] text-muted-foreground truncate leading-tight">Management System</p>
+            </div>
+          </>
         )}
         {!isMobile && (
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="ml-auto h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
+            className={cn(
+              "text-muted-foreground hover:text-foreground shrink-0",
+              sidebarCollapsed ? "h-10 w-10" : "ml-auto h-7 w-7"
+            )}
           >
-            {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            {sidebarCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-4 w-4" />}
           </Button>
         )}
       </div>
