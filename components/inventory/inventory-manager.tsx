@@ -86,6 +86,7 @@ export function InventoryManager({ user }: InventoryManagerProps) {
   
   // Dialog states
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false)
+  const [editingProductId, setEditingProductId] = useState<number | null>(null)
   const [productForm, setProductForm] = useState({ name: "", sku: "", base_price: "", low_stock_threshold: "10" })
   
   const [isBatchDialogOpen, setIsBatchDialogOpen] = useState(false)
@@ -212,12 +213,30 @@ export function InventoryManager({ user }: InventoryManagerProps) {
 
   const handleCreateProduct = async () => {
     try {
-      await inventoryApi.createProduct(productForm)
-      toast.success("Product created successfully")
+      if (editingProductId) {
+        await inventoryApi.updateProduct(editingProductId, productForm)
+        toast.success("Product updated successfully")
+      } else {
+        await inventoryApi.createProduct(productForm)
+        toast.success("Product created successfully")
+      }
       setIsProductDialogOpen(false)
+      setEditingProductId(null)
+      setProductForm({ name: "", sku: "", base_price: "", low_stock_threshold: "10" })
       fetchData()
     } catch (error) {
-      toast.error("Failed to create product")
+      toast.error(editingProductId ? "Failed to update product" : "Failed to create product")
+    }
+  }
+
+  const handleDeleteProduct = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this product? This will remove all associated stock and history.")) return
+    try {
+      await inventoryApi.deleteProduct(id)
+      toast.success("Product removed from registry")
+      fetchData()
+    } catch (error) {
+      toast.error("Failed to delete product")
     }
   }
 
@@ -623,7 +642,17 @@ export function InventoryManager({ user }: InventoryManagerProps) {
                                    setIsRequestDialogOpen(true)
                                  }}>Reserve</Button>
                                )}
-                               <Button variant="ghost" size="sm" className="h-8 text-[10px] font-black uppercase text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-transparent hover:border-rose-100 shadow-none hover:shadow-sm">Modify</Button>
+                               <Button variant="ghost" size="sm" className="h-8 text-[10px] font-black uppercase text-slate-400 hover:text-slate-900 hover:bg-white rounded-lg border border-transparent hover:border-slate-100 shadow-none hover:shadow-sm" onClick={() => {
+                                 setEditingProductId(p.id)
+                                 setProductForm({
+                                   name: p.name,
+                                   sku: p.sku || "",
+                                   base_price: p.base_price?.toString() || "",
+                                   low_stock_threshold: p.low_stock_threshold?.toString() || "10"
+                                 })
+                                 setIsProductDialogOpen(true)
+                               }}>Modify</Button>
+                               <Button variant="ghost" size="sm" className="h-8 text-[10px] font-black uppercase text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-transparent hover:border-rose-100 shadow-none hover:shadow-sm" onClick={() => handleDeleteProduct(p.id)}>Delete</Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -1182,9 +1211,15 @@ export function InventoryManager({ user }: InventoryManagerProps) {
       </Dialog>
 
       {/* Product Dialog */}
-      <Dialog open={isProductDialogOpen} onOpenChange={setIsProductDialogOpen}>
+      <Dialog open={isProductDialogOpen} onOpenChange={(open) => {
+        setIsProductDialogOpen(open)
+        if (!open) {
+          setEditingProductId(null)
+          setProductForm({ name: "", sku: "", base_price: "", low_stock_threshold: "10" })
+        }
+      }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Inventory Control - New Catalog Item</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Inventory Control - {editingProductId ? "Update Asset" : "New Catalog Item"}</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
               <Label>Product Name</Label>
@@ -1206,7 +1241,7 @@ export function InventoryManager({ user }: InventoryManagerProps) {
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleCreateProduct}>Register Product</Button>
+            <Button onClick={handleCreateProduct}>{editingProductId ? "Update Product" : "Register Product"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
