@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { login, type User } from "@/lib/auth"
 import { Loader2, ShieldCheck, Mail, Lock } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface LoginFormProps {
   onLogin: (user: User) => void
@@ -18,6 +19,7 @@ export function LoginForm({ onLogin }: LoginFormProps) {
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [isDivaLounge, setIsDivaLounge] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,17 +27,17 @@ export function LoginForm({ onLogin }: LoginFormProps) {
     setError("")
 
     try {
-      console.log('Login attempt with identifier:', identifier);
+      console.log('Login attempt:', identifier, isDivaLounge ? 'Diva mode' : 'Mase mode');
       const user = await login(identifier, password)
-      console.log('Login response:', user);
-
+      
       if (user) {
+        // Store the business context
+        localStorage.setItem('business_context', isDivaLounge ? 'fnb' : 'printing')
         onLogin(user)
       } else {
         setError("Invalid credentials. Please try again.")
       }
     } catch (err) {
-      console.error('Login error:', err)
       setError("An error occurred during sign in. Please try again later.")
     } finally {
       setIsLoading(false)
@@ -43,105 +45,136 @@ export function LoginForm({ onLogin }: LoginFormProps) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f8f9fb] p-4">
-      <div className="w-full max-w-md space-y-6">
-        <div className="text-center space-y-2">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg mb-2">
-            <ShieldCheck className="h-6 w-6" />
+    <div className={cn(
+      "min-h-screen flex flex-col items-center justify-center p-4 transition-colors duration-500",
+      isDivaLounge ? "bg-[#0a0a0b]" : "bg-[#f8f9fb]"
+    )}>
+      <div className="w-full max-w-md space-y-8 animate-in fade-in duration-700">
+        <div className="text-center space-y-3">
+          <div className={cn(
+            "inline-flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg mb-2 transition-all duration-500",
+            isDivaLounge ? "bg-amber-500 text-black rotate-45" : "bg-primary text-primary-foreground"
+          )}>
+            <ShieldCheck className={cn("h-7 w-7 transition-all", isDivaLounge ? "-rotate-45" : "")} />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">MasePrinting</h1>
-          <p className="text-sm text-muted-foreground">Management System Access</p>
+          <h1 className={cn(
+            "text-3xl font-black tracking-tight transition-colors duration-500",
+            isDivaLounge ? "text-white" : "text-foreground"
+          )}>
+            {isDivaLounge ? "Diva Lounge Addis" : "MasePrinting"}
+          </h1>
+          <p className="text-sm text-muted-foreground font-medium tracking-wide">
+            {isDivaLounge ? "Luxury Experience Management" : "Professional Management System"}
+          </p>
         </div>
 
-        <Card className="border-border/60 shadow-xl shadow-black/5 bg-white border-none">
-          <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-xl font-semibold">Sign in</CardTitle>
-            <CardDescription>Enter your credentials to access your dashboard</CardDescription>
+        <Card className={cn(
+          "border-none shadow-2xl transition-all duration-500",
+          isDivaLounge ? "bg-zinc-900/50 text-white backdrop-blur-xl border border-white/5" : "bg-white text-foreground"
+        )}>
+          <CardHeader className="space-y-1 pb-6">
+            <CardTitle className="text-xl font-bold">Welcome Back</CardTitle>
+            <CardDescription className={isDivaLounge ? "text-zinc-400" : ""}>
+              Please enter your details to continue
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="identifier" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Username or Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Label className={cn(
+                  "text-[10px] font-bold uppercase tracking-widest opacity-70",
+                  isDivaLounge ? "text-amber-500/80" : "text-primary"
+                )}>
+                  Username or Email
+                </Label>
+                <div className="relative group">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                   <Input
-                    id="identifier"
                     type="text"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    placeholder="Enter your username or email"
+                    placeholder="manager@divalounge.com"
                     required
-                    className="pl-10 h-11 bg-muted/30 border-border/50 focus-visible:ring-primary/20 transition-all"
+                    className={cn(
+                      "pl-10 h-12 transition-all",
+                      isDivaLounge 
+                        ? "bg-white/5 border-white/10 focus:border-amber-500/50 text-white placeholder:text-zinc-600" 
+                        : "bg-muted/30 border-border/50 focus:border-primary/50"
+                    )}
                     disabled={isLoading}
                   />
                 </div>
               </div>
+              
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Password</Label>
-                  <Button variant="link" className="px-0 font-normal text-xs text-muted-foreground hover:text-primary h-auto py-0">
-                    Forgot password?
-                  </Button>
+                  <Label className={cn(
+                    "text-[10px] font-bold uppercase tracking-widest opacity-70",
+                    isDivaLounge ? "text-amber-500/80" : "text-primary"
+                  )}>
+                    Password
+                  </Label>
                 </div>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <div className="relative group">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                   <Input
-                    id="password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     required
-                    className="pl-10 h-11 bg-muted/30 border-border/50 focus-visible:ring-primary/20 transition-all"
+                    className={cn(
+                      "pl-10 h-12 transition-all",
+                      isDivaLounge 
+                        ? "bg-white/5 border-white/10 focus:border-amber-500/50 text-white placeholder:text-zinc-600" 
+                        : "bg-muted/30 border-border/50 focus:border-primary/50"
+                    )}
                     disabled={isLoading}
                   />
                 </div>
               </div>
 
               {error && (
-                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium animate-in fade-in zoom-in-95 duration-200">
+                <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-bold animate-in slide-in-from-top-2 duration-300">
                   {error}
                 </div>
               )}
 
-              <Button type="submit" className="w-full h-11 font-medium text-sm shadow-md" disabled={isLoading}>
+              <Button 
+                type="submit" 
+                className={cn(
+                  "w-full h-12 font-bold text-sm shadow-xl transition-all active:scale-[0.98]",
+                  isDivaLounge ? "bg-amber-500 hover:bg-amber-400 text-black" : "bg-primary hover:bg-primary/90"
+                )} 
+                disabled={isLoading}
+              >
                 {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
-                  </>
+                  <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                  "Sign In to Dashboard"
+                  "Access Dashboard"
                 )}
               </Button>
             </form>
           </CardContent>
-          <CardFooter className="flex flex-col border-t border-border/50 pt-4 pb-4 bg-muted/5 rounded-b-lg">
-            {/* <div className="text-[11px] text-muted-foreground space-y-1 w-full">
-              <p className="font-semibold uppercase tracking-[0.05em] mb-1.5 opacity-70">Demo Credentials</p>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                <div className="flex justify-between border-b border-border/40 pb-0.5">
-                  <span>Admin:</span>
-                  <span className="font-medium text-foreground/80">melaku</span>
-                </div>
-                <div className="flex justify-between border-b border-border/40 pb-0.5">
-                  <span>Employee:</span>
-                  <span className="font-medium text-foreground/80">jo</span>
-                </div>
-                <div className="flex justify-between border-b border-border/40 pb-0.5 col-span-2">
-                  <span>Demo Password:</span>
-                  <span className="font-medium text-foreground/80 uppercase tracking-widest text-[10px]">mimi@2025</span>
-                </div>
-              </div>
-            </div> */}
+          <CardFooter className="flex flex-col gap-4 border-t border-white/5 pt-6 pb-6 bg-black/10 rounded-b-xl">
+             <Button 
+                variant="ghost" 
+                onClick={() => setIsDivaLounge(!isDivaLounge)}
+                className={cn(
+                  "w-full text-xs font-bold tracking-widest uppercase py-6 border-2 border-dashed transition-all hover:bg-transparent",
+                  isDivaLounge 
+                    ? "border-amber-500/20 text-amber-500 hover:border-amber-500/50" 
+                    : "border-primary/20 text-primary hover:border-primary/50"
+                )}
+             >
+                Switch to {isDivaLounge ? "MasePrinting" : "Diva Lounge Addis"}
+             </Button>
           </CardFooter>
         </Card>
 
-        <div className="text-center">
-            <p className="text-xs text-muted-foreground opacity-60">
-                Secure access powered by Maseprinting
-            </p>
-        </div>
+        <p className="text-center text-[10px] uppercase font-bold tracking-[0.2em] opacity-30 text-muted-foreground">
+          System Core v5.2.0 • Advanced Agentic Coding
+        </p>
       </div>
     </div>
   )

@@ -18,11 +18,19 @@ export function connectTaskSocket(onUpdate: OnUpdate) {
   const wsBase = BACKEND_URL.replace(/^http/, 'ws')
   const wsUrl = `${wsBase}/ws/tasks/`
   
-  console.log(`Attempting WebSocket connection to: ${wsUrl}`)
-  const socket = new WebSocket(wsUrl)
+  // Log attempt with formatted message
+  console.log(`[WebSocket] Connecting to: ${wsUrl}`)
+  
+  let socket: WebSocket;
+  try {
+    socket = new WebSocket(wsUrl)
+  } catch (e) {
+    console.error('[WebSocket] Failed to create WebSocket:', e)
+    return () => {}
+  }
 
   socket.onopen = () => {
-    console.log('Connected to Task WebSocket')
+    console.log('[WebSocket] Connection established')
   }
 
   socket.onmessage = (event) => {
@@ -40,7 +48,11 @@ export function connectTaskSocket(onUpdate: OnUpdate) {
   }
 
   socket.onerror = (error) => {
-    console.error('Task WebSocket error', error)
+    console.error('[WebSocket] Error occurred:', error)
+    // If the error object is empty, it's often a connection failure
+    if (Object.keys(error).length === 0) {
+      console.error('[WebSocket] Error info unavailable. Check if the server is running and the URL is correct.')
+    }
     socket.close()
   }
 

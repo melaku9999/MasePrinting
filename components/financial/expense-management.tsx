@@ -397,9 +397,11 @@ export function ExpenseManagement({ user }: ExpenseManagementProps) {
               <Select value={purchaseForm.productId} onValueChange={(v) => setPurchaseForm({...purchaseForm, productId: v})}>
                 <SelectTrigger><SelectValue placeholder="Select product..." /></SelectTrigger>
                 <SelectContent>
-                  {products.map(p => (
-                    <SelectItem key={p.id} value={p.id.toString()}>{p.name} ({p.sku})</SelectItem>
-                  ))}
+                  {products
+                    .filter(p => p.business_type !== 'fnb')
+                    .map(p => (
+                      <SelectItem key={p.id} value={p.id.toString()}>{p.name} ({p.sku})</SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -421,9 +423,11 @@ export function ExpenseManagement({ user }: ExpenseManagementProps) {
                 <Select value={purchaseForm.branchId} onValueChange={(v) => setPurchaseForm({...purchaseForm, branchId: v})}>
                   <SelectTrigger><SelectValue placeholder="Select branch..." /></SelectTrigger>
                   <SelectContent>
-                    {branches.map(b => (
-                      <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>
-                    ))}
+                    {branches
+                      .filter(b => !b.name.toLowerCase().includes('diva lounge'))
+                      .map(b => (
+                        <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               ) : (
@@ -515,7 +519,9 @@ export function ExpenseManagement({ user }: ExpenseManagementProps) {
                 <Select value={generalForm.branchId} onValueChange={(v) => setGeneralForm({...generalForm, branchId: v})}>
                   <SelectTrigger><SelectValue placeholder="Select branch..." /></SelectTrigger>
                   <SelectContent>
-                    {branches.map(b => (
+                  {branches
+                    .filter(b => !b.name.toLowerCase().includes('diva lounge'))
+                    .map(b => (
                       <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>
                     ))}
                   </SelectContent>

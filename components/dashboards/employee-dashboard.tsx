@@ -15,6 +15,12 @@ import { FinancialManager, RevenueHub } from "@/components/financial"
 import { SharedTaskInterface } from "@/components/tasks/shared-task-interface"
 import { InventoryManager } from "@/components/inventory/inventory-manager"
 import { ServiceMarketplace } from "@/components/services/service-marketplace"
+import { LoungeOverview } from "./lounge/LoungeOverview"
+import { LoungeSales } from "./lounge/LoungeSales"
+import { LoungeInventory } from "./lounge/LoungeInventory"
+import { LoungeExpenses } from "./lounge/LoungeExpenses"
+import { LoungeCustomers } from "./lounge/LoungeCustomers"
+import { LoungeLogs } from "./lounge/LoungeLogs"
 import {
   CheckCircle2,
   Clock,
@@ -44,6 +50,25 @@ interface EmployeeDashboardProps {
 
 export function EmployeeDashboard({ user, initialTab = "overview" }: EmployeeDashboardProps) {
   const [activeTab, setActiveTab] = useState(initialTab)
+  
+  // Diva Lounge Check
+  const isFnb = typeof window !== 'undefined' && localStorage.getItem('business_context') === 'fnb'
+
+  // Diva Lounge Case
+  if (isFnb) {
+    return (
+      <div className="h-full">
+        {activeTab === "overview" && <LoungeOverview />}
+        {activeTab === "pos" && <LoungeSales />}
+        {activeTab === "bar_inventory" && <LoungeInventory />}
+        {activeTab === "bar_expenses" && <LoungeExpenses />}
+        {activeTab === "bar_logs" && <LoungeLogs />}
+        {activeTab === "lounge_customers" && <LoungeCustomers />}
+        {activeTab === "revenue_hub" && <RevenueHub user={user} />}
+        {activeTab === "chat" && <SharedTaskInterface user={user} viewMode="employee" title="Lounge Support" />}
+      </div>
+    )
+  }
 
   useEffect(() => {
     if (initialTab && initialTab !== activeTab) {

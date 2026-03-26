@@ -1,8 +1,8 @@
 // Centralized API service layer for all backend endpoints
 
 // Base API configuration — configurable via env for Docker
-export const BACKEND_URL = 'https://api.maseprinting.com'
-// export const BACKEND_URL = 'https://localhost:9001'
+// export const BACKEND_URL = 'https://api.maseprinting.com'
+export const BACKEND_URL = 'http://localhost:9001'
 const API_BASE_URL = `${BACKEND_URL}/api`
 
 /**
@@ -146,7 +146,7 @@ export const usersApi = {
 
 // Customers API
 export const customersApi = {
-  getAll: (params?: { page?: number; page_size?: number; search?: string; status?: string }) => {
+  getAll: (params?: { page?: number; page_size?: number; search?: string; status?: string; business_type?: string }) => {
     const searchParams = new URLSearchParams()
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
@@ -156,8 +156,11 @@ export const customersApi = {
     return apiRequest<{ results: any[]; count: number; next: string | null; previous: string | null }>(`/customers/list/?${searchParams}`)
   },
 
-  getListMin: () => {
-    return apiRequest<Array<{ customer_id: number, name: string, email: string }>>(`/customers/list-min/`)
+  getListMin: (params?: { business_type?: string }) => {
+    const searchParams = new URLSearchParams()
+    if (params?.business_type) searchParams.append('business_type', params.business_type)
+    const query = searchParams.toString()
+    return apiRequest<Array<{ customer_id: number, name: string, email: string }>>(`/customers/list-min/${query ? `?${query}` : ''}`)
   },
 
   getById: (id: string) =>
@@ -741,3 +744,91 @@ export const cmsApi = {
       body: JSON.stringify(inquiryData),
     }),
 }
+
+// F&B (Diva Lounge) API
+export const fnbApi = {
+  getProducts: (params?: any) => {
+    const searchParams = new URLSearchParams()
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) searchParams.append(key, String(value))
+      })
+    }
+    return apiRequest<any[]>(`/fnb/products/?${searchParams}`)
+  },
+  getCategories: () => apiRequest<any[]>('/fnb/categories/'),
+  createSale: (data: any) => 
+    apiRequest<any>('/fnb/sales/create/', { 
+      method: 'POST', 
+      body: JSON.stringify(data) 
+    }),
+  getEmployeeSales: () => apiRequest<any[]>('/fnb/employee/sales/'),
+  getInventoryStatus: (branchId?: string, includeEmpty: boolean = false) => 
+    apiRequest<any[]>(`/fnb/inventory/status/?${branchId ? `branch=${branchId}&` : ''}${includeEmpty ? 'include_empty=true' : ''}`),
+  getExpenses: () => apiRequest<any[]>('/fnb/expenses/'),
+  createExpense: (data: any) => 
+    apiRequest<any>('/fnb/expenses/', { 
+      method: 'POST', 
+      body: JSON.stringify(data) 
+    }),
+  createProduct: (data: any) => 
+    apiRequest<any>('/fnb/products/', { 
+      method: 'POST', 
+      body: JSON.stringify(data) 
+    }),
+  updateProduct: (id: number, data: any) => 
+    apiRequest<any>(`/fnb/products/${id}/`, { 
+      method: 'PUT', 
+      body: JSON.stringify(data) 
+    }),
+  deleteProduct: (id: number) => 
+    apiRequest<any>(`/fnb/products/${id}/`, { 
+      method: 'DELETE' 
+    }),
+  createCategory: (data: any) => 
+    apiRequest<any>('/fnb/categories/', { 
+      method: 'POST', 
+      body: JSON.stringify(data) 
+    }),
+  adjustInventory: (data: { product_id: number; branch_id?: number; new_quantity: number }) =>
+    apiRequest<any>('/inventory/stock-adjust/', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+  updateExpense: (id: number, data: any) =>
+    apiRequest<any>(`/fnb/expenses/${id}/`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }),
+  deleteExpense: (id: number) =>
+    apiRequest<any>(`/fnb/expenses/${id}/`, {
+      method: "DELETE"
+    }),
+  markInventoryEmpty: (data: { product_id: number; notes?: string }) =>
+    apiRequest<any>('/fnb/inventory/mark-empty/', { 
+      method: 'POST', 
+      body: JSON.stringify(data) 
+    }),
+  getConsumptionPreview: (productId: number) =>
+    apiRequest<any>(`/fnb/inventory/consumption-preview/${productId}/`),
+  getClearanceHistory: (branchId?: string) =>
+    apiRequest<any[]>(`/fnb/inventory/clearance-history/?${branchId ? `branch=${branchId}` : ''}`),
+}
+
+export const getFnbProducts = fnbApi.getProducts
+export const createFnbSale = fnbApi.createSale
+export const getEmployeeFnbSales = fnbApi.getEmployeeSales
+export const getFnbInventoryStatus = fnbApi.getInventoryStatus
+export const getFnbExpenses = fnbApi.getExpenses
+export const createFnbExpense = fnbApi.createExpense
+export const getFnbCategories = fnbApi.getCategories
+export const createFnbProduct = fnbApi.createProduct
+export const updateFnbProduct = fnbApi.updateProduct
+export const deleteFnbProduct = fnbApi.deleteProduct
+export const createFnbCategory = fnbApi.createCategory
+export const adjustFnbInventory = fnbApi.adjustInventory
+export const updateFnbExpense = fnbApi.updateExpense
+export const deleteFnbExpense = fnbApi.deleteExpense
+export const markFnbInventoryEmpty = fnbApi.markInventoryEmpty
+export const getFnbConsumptionPreview = fnbApi.getConsumptionPreview
+export const getFnbClearanceHistory = fnbApi.getClearanceHistory

@@ -49,6 +49,7 @@ export const ADMIN_NAVIGATION: NavGroup[] = [
     items: [
       { id: "customers", label: "Customers", icon: Users },
       { id: "services", label: "Services", icon: Building },
+      { id: "recipe_manager", label: "Recipe Manager", icon: Layout },
       { id: "tasks", label: "My Tasks", icon: CheckCircle2 },
       { id: "mytasks", label: "All Tasks", icon: CheckCircle2 },
       { id: "calendar", label: "Calendar", icon: CalendarDays },
@@ -101,7 +102,7 @@ export const EMPLOYEE_NAVIGATION: NavGroup[] = [
     items: [
       { id: "customers", label: "Customers", icon: Users },
       { id: "files", label: "Box Files", icon: Folder },
-      { id: "chat", label: "Support Chat", icon: MessageSquare },
+      // { id: "chat", label: "Support Chat", icon: MessageSquare },
     ],
   },
 ]
@@ -121,10 +122,49 @@ export const CUSTOMER_NAVIGATION: NavGroup[] = [
   },
 ]
 
+export const LOUNGE_NAVIGATION: NavGroup[] = [
+  {
+    label: "Diva Lounge",
+    items: [
+      { id: "overview", label: "Diva Overview", icon: Home },
+    ],
+  },
+  {
+    label: "Service Desk",
+    items: [
+      { id: "pos", label: "Service Desk", icon: ShoppingCart },
+    ],
+  },
+  {
+    label: "Inventory & Assets",
+    items: [
+      { id: "bar_inventory", label: "Diva Assets", icon: Boxes },
+    ],
+  },
+  {
+    label: "Financials",
+    items: [
+      { id: "bar_expenses", label: "Diva Expenses", icon: TrendingUp },
+      { id: "bar_logs", label: "Diva Sales Logs", icon: DollarSign },
+      { id: "revenue_hub", label: "Diva Insights", icon: LineChart },
+    ],
+  },
+  {
+    label: "Management",
+    items: [
+      { id: "lounge_customers", label: "Bar Customers", icon: Users },
+      // { id: "chat", label: "Support Chat", icon: MessageSquare },
+    ],
+  },
+]
+
 export function getNavigationForRole(role: string): NavGroup[] {
+  const isFnb = typeof window !== 'undefined' && localStorage.getItem('business_context') === 'fnb'
+
+  if (role === 'admin') return ADMIN_NAVIGATION
+  if (isFnb) return LOUNGE_NAVIGATION
+
   switch (role) {
-    case "admin":
-      return ADMIN_NAVIGATION
     case "employee":
       return EMPLOYEE_NAVIGATION
     case "customer":

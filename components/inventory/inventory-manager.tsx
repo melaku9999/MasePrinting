@@ -587,7 +587,14 @@ export function InventoryManager({ user }: InventoryManagerProps) {
                               </div>
                               <div className="flex flex-col">
                                 <span className="font-bold text-slate-900 leading-tight">{p.name}</span>
-                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">SKU: {p.sku || 'N/A'}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">SKU: {p.sku || 'N/A'}</span>
+                                  {p.business_type === 'fnb' && (
+                                    <Badge variant="outline" className="text-[8px] h-3.5 px-1 bg-amber-50 text-amber-600 border-amber-200 font-black uppercase tracking-tighter">
+                                      Ref: Diva Lounge
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </TableCell>
@@ -642,17 +649,27 @@ export function InventoryManager({ user }: InventoryManagerProps) {
                                    setIsRequestDialogOpen(true)
                                  }}>Reserve</Button>
                                )}
-                               <Button variant="ghost" size="sm" className="h-8 text-[10px] font-black uppercase text-slate-400 hover:text-slate-900 hover:bg-white rounded-lg border border-transparent hover:border-slate-100 shadow-none hover:shadow-sm" onClick={() => {
-                                 setEditingProductId(p.id)
-                                 setProductForm({
-                                   name: p.name,
-                                   sku: p.sku || "",
-                                   base_price: p.base_price?.toString() || "",
-                                   low_stock_threshold: p.low_stock_threshold?.toString() || "10"
-                                 })
-                                 setIsProductDialogOpen(true)
-                               }}>Modify</Button>
-                               <Button variant="ghost" size="sm" className="h-8 text-[10px] font-black uppercase text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-transparent hover:border-rose-100 shadow-none hover:shadow-sm" onClick={() => handleDeleteProduct(p.id)}>Delete</Button>
+                               <Button 
+                                 variant="ghost" 
+                                 size="sm" 
+                                 className="h-8 text-[10px] font-black uppercase text-slate-400 hover:text-slate-900 hover:bg-white rounded-lg border border-transparent hover:border-slate-100 shadow-none hover:shadow-sm disabled:opacity-30" 
+                                 disabled={p.business_type === 'fnb'}
+                                 onClick={() => {
+                                   setEditingProductId(p.id)
+                                   setProductForm({
+                                     name: p.name,
+                                     sku: p.sku || "",
+                                     base_price: p.base_price?.toString() || "",
+                                     low_stock_threshold: p.low_stock_threshold?.toString() || "10"
+                                   })
+                                   setIsProductDialogOpen(true)
+                                 }}>Modify</Button>
+                               <Button 
+                                 variant="ghost" 
+                                 size="sm" 
+                                 className="h-8 text-[10px] font-black uppercase text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-transparent hover:border-rose-100 shadow-none hover:shadow-sm disabled:opacity-30" 
+                                 disabled={p.business_type === 'fnb'}
+                                 onClick={() => handleDeleteProduct(p.id)}>Delete</Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -1007,12 +1024,17 @@ export function InventoryManager({ user }: InventoryManagerProps) {
                           </TableCell>
                           <TableCell className="px-6">
                             <Badge className="bg-rose-100 text-rose-700 font-black text-[10px] uppercase tracking-tighter border-none px-2 py-0.5">
-                              Critical Threshold
+                            Critical Threshold
                             </Badge>
                           </TableCell>
                           <TableCell className="px-6 text-right">
                              <div className="flex justify-end gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-all">
-                                <Button size="sm" variant="ghost" className="h-8 text-[10px] font-black uppercase text-rose-600 hover:bg-rose-50" onClick={() => {
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="h-8 text-[10px] font-black uppercase text-rose-600 hover:bg-rose-50 disabled:opacity-40" 
+                                  disabled={ls.business_type === 'fnb'}
+                                  onClick={() => {
                                    setTransferForm({
                                      from_branch: "",
                                      to_branch: ls.branch_id || "",
@@ -1059,7 +1081,9 @@ export function InventoryManager({ user }: InventoryManagerProps) {
                     onChange={(e) => setTransferForm({ ...transferForm, from_branch: e.target.value })}
                   >
                     <option value="">Central Warehouse</option>
-                    {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                    {branches
+                      .filter(b => !b.name.toLowerCase().includes('diva lounge'))
+                      .map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
                </div>
                <div className="space-y-1.5">
@@ -1070,7 +1094,9 @@ export function InventoryManager({ user }: InventoryManagerProps) {
                     onChange={(e) => setTransferForm({ ...transferForm, to_branch: e.target.value })}
                   >
                     <option value="">Select destination...</option>
-                    {branches.map(b => !b.is_warehouse && <option key={b.id} value={b.id}>{b.name}</option>)}
+                    {branches
+                      .filter(b => !b.is_warehouse && !b.name.toLowerCase().includes('diva lounge'))
+                      .map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
                </div>
             </div>
@@ -1090,7 +1116,7 @@ export function InventoryManager({ user }: InventoryManagerProps) {
                         }}
                       >
                         <option value="">Select product...</option>
-                        {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        {products.filter(p => p.business_type !== 'fnb').map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                       </select>
                    </div>
                    <Input 
@@ -1148,7 +1174,9 @@ export function InventoryManager({ user }: InventoryManagerProps) {
                     onChange={(e) => setRequestForm({ ...requestForm, branch: e.target.value })}
                   >
                     <option value="">Select branch...</option>
-                    {branches.map(b => !b.is_warehouse && <option key={b.id} value={b.id}>{b.name}</option>)}
+                    {branches
+                      .filter(b => !b.is_warehouse && !b.name.toLowerCase().includes('diva lounge'))
+                      .map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
                </div>
             )}
@@ -1167,7 +1195,7 @@ export function InventoryManager({ user }: InventoryManagerProps) {
                     }}
                   >
                     <option value="">Select product...</option>
-                    {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    {products.filter(p => p.business_type !== 'fnb').map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                   </select>
                 </div>
                 <div className="col-span-2 space-y-1.5">
@@ -1257,7 +1285,7 @@ export function InventoryManager({ user }: InventoryManagerProps) {
               <div className="space-y-2">
                  <select className="w-full h-10 border rounded px-3" value={batchForm.product} onChange={e => setBatchForm({...batchForm, product: e.target.value})}>
                     <option value="">Select...</option>
-                    {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    {products.filter(p => p.business_type !== 'fnb').map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                  </select>
                  <Input placeholder="Quantity" type="number" value={batchForm.quantity} onChange={e => setBatchForm({...batchForm, quantity: e.target.value})} />
                  <Input placeholder="Cost per unit ($)" type="number" value={batchForm.cost_per_unit} onChange={e => setBatchForm({...batchForm, cost_per_unit: e.target.value})} />

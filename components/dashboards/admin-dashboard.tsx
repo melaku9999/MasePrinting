@@ -15,6 +15,7 @@ import { AnalyticsCharts } from "@/components/reports/analytics-charts"
 import { SalesManagement } from "@/components/sales/sales-management"
 import { BoxFileManagement } from "@/components/files/box-file-management"
 import { EmployeeManagement } from "@/components/employees/employee-management"
+import { InquiryList } from "@/components/admin/inquiry-list"
 import { AdminChatTelegram } from "@/components/chat/admin-chat-telegram"
 import { FinancialManager, RevenueHub, ExpenseManagement } from "@/components/financial"
 import { ReminderManager } from "@/components/reminders/reminder-manager"
@@ -22,7 +23,7 @@ import { BranchManager } from "@/components/branches/branch-manager"
 import { InventoryManager } from "@/components/inventory/inventory-manager"
 import { CalendarManagement } from "@/components/tasks/calendar-management"
 import { ContentManagement } from "@/components/admin/content-management"
-import { InquiryList } from "@/components/admin/inquiry-list"
+import { RecipeManager } from "./lounge/RecipeManager"
 import {
   Users,
   Building,
@@ -359,6 +360,7 @@ export function AdminDashboard({ user, initialTab = "overview" }: AdminDashboard
       {activeTab === "content" && <ContentManagement />}
       {activeTab === "inquiries" && <InquiryList />}
       {activeTab === "chat" && <AdminChatTelegram />}
+      {activeTab === "recipe_manager" && <RecipeManager />}
     </div>
   )
 }
