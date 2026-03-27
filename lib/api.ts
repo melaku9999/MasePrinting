@@ -1,8 +1,8 @@
 // Centralized API service layer for all backend endpoints
 
 // Base API configuration — configurable via env for Docker
-// export const BACKEND_URL = 'https://api.maseprinting.com'
-export const BACKEND_URL = 'http://localhost:9001'
+export const BACKEND_URL = 'https://api.maseprinting.com'
+// export const BACKEND_URL = 'http://localhost:9001'
 const API_BASE_URL = `${BACKEND_URL}/api`
 
 /**
@@ -757,38 +757,38 @@ export const fnbApi = {
     return apiRequest<any[]>(`/fnb/products/?${searchParams}`)
   },
   getCategories: () => apiRequest<any[]>('/fnb/categories/'),
-  createSale: (data: any) => 
-    apiRequest<any>('/fnb/sales/create/', { 
-      method: 'POST', 
-      body: JSON.stringify(data) 
+  createSale: (data: any) =>
+    apiRequest<any>('/fnb/sales/create/', {
+      method: 'POST',
+      body: JSON.stringify(data)
     }),
   getEmployeeSales: () => apiRequest<any[]>('/fnb/employee/sales/'),
-  getInventoryStatus: (branchId?: string, includeEmpty: boolean = false) => 
+  getInventoryStatus: (branchId?: string, includeEmpty: boolean = false) =>
     apiRequest<any[]>(`/fnb/inventory/status/?${branchId ? `branch=${branchId}&` : ''}${includeEmpty ? 'include_empty=true' : ''}`),
   getExpenses: () => apiRequest<any[]>('/fnb/expenses/'),
-  createExpense: (data: any) => 
-    apiRequest<any>('/fnb/expenses/', { 
-      method: 'POST', 
-      body: JSON.stringify(data) 
+  createExpense: (data: any) =>
+    apiRequest<any>('/fnb/expenses/', {
+      method: 'POST',
+      body: JSON.stringify(data)
     }),
-  createProduct: (data: any) => 
-    apiRequest<any>('/fnb/products/', { 
-      method: 'POST', 
-      body: JSON.stringify(data) 
+  createProduct: (data: any) =>
+    apiRequest<any>('/fnb/products/', {
+      method: 'POST',
+      body: JSON.stringify(data)
     }),
-  updateProduct: (id: number, data: any) => 
-    apiRequest<any>(`/fnb/products/${id}/`, { 
-      method: 'PUT', 
-      body: JSON.stringify(data) 
+  updateProduct: (id: number, data: any) =>
+    apiRequest<any>(`/fnb/products/${id}/`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
     }),
-  deleteProduct: (id: number) => 
-    apiRequest<any>(`/fnb/products/${id}/`, { 
-      method: 'DELETE' 
+  deleteProduct: (id: number) =>
+    apiRequest<any>(`/fnb/products/${id}/`, {
+      method: 'DELETE'
     }),
-  createCategory: (data: any) => 
-    apiRequest<any>('/fnb/categories/', { 
-      method: 'POST', 
-      body: JSON.stringify(data) 
+  createCategory: (data: any) =>
+    apiRequest<any>('/fnb/categories/', {
+      method: 'POST',
+      body: JSON.stringify(data)
     }),
   adjustInventory: (data: { product_id: number; branch_id?: number; new_quantity: number }) =>
     apiRequest<any>('/inventory/stock-adjust/', {
@@ -805,9 +805,9 @@ export const fnbApi = {
       method: "DELETE"
     }),
   markInventoryEmpty: (data: { product_id: number; notes?: string }) =>
-    apiRequest<any>('/fnb/inventory/mark-empty/', { 
-      method: 'POST', 
-      body: JSON.stringify(data) 
+    apiRequest<any>('/fnb/inventory/mark-empty/', {
+      method: 'POST',
+      body: JSON.stringify(data)
     }),
   getConsumptionPreview: (productId: number) =>
     apiRequest<any>(`/fnb/inventory/consumption-preview/${productId}/`),
